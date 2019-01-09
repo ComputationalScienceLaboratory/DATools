@@ -24,7 +24,7 @@ k = 0;
 
 while k < maxits && norm(g) > gtol && norm(p) > xtol && ~sc(x)
     
-    alpha = csl.utils.armijo(costfn, x, p, g);
+    alpha = csl.utils.armijowolfe(costfn, x, p, g);
     
     x = x + alpha*p;
     

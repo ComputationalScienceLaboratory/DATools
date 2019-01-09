@@ -1,4 +1,4 @@
-function [tspan, y] = RODAS4(f, tspan, y0, tol, Jvpa, df)
+function [tspan, y] = RODAS4(f, tspan, y0, varargin)
 
 % coeffA = zeros(4);
 % coeffG = zeros(4);
@@ -56,22 +56,28 @@ mh2 = a52;
 mh3 = a53;
 mh4 = a54;
 mh5 = 1;
-mh6 = 0;
+
+p = inputParser;
+addParameter(p, 'RelTol', 1e-3);
+addParameter(p, 'AbsTol', 1e-6);
+jvpe = sqrt(eps);
+addParameter(p, 'JacobianVectorProduct', @(t, y, u) (f(t, y + jvpe*u) - f(t, y))/jvpe);
+addParameter(p, 'OutputFcn', []);
+addParameter(p, 'InitialStepSize', 1e-3);
+
+parse(p, varargin{:});
+s = p.Results;
+
+reltol = s.RelTol;
+abstol = s.AbsTol;
+Jvpa   = s.JacobianVectorProduct;
+df     = s.OutputFcn;
+dt     = s.InitialStepSize;
 
 
-% beta11 = 0;
-% beta22 = 0;
-% beta33 = 0;
-% beta44 = 0;
-% beta21 = a21 + 0;
-% beta31 = a31 + 0;
-% beta32 = a32 + 0;
-% beta41 = a41 + 0;
-% beta42 = a42 + 0;
-% beta43 = a43 + 0;
 
-yc= y0;
-dt = 1e-3;
+yc = y0;
+
 
 tc = tspan(1);
 tend = tspan(end);
@@ -80,21 +86,11 @@ if tc + dt > tend
     dt = tend - tc;
 end
 
-if nargin < 5 || isempty(Jvpa)
-    jvpe = sqrt(eps);
-    Jvpa = @(t, y, u) (f(t, y + jvpe*u) - f(t, y))/jvpe;
-    %Jvpa = @(t, y, u) jac_mat_fd(f, t, y, u, jvpe);
-end
-
-if nargin < 6 || isempty(df)
-    df = [];
-end
-
 restarts = [];
 
 orderE = 3;
 
-lnsoltol = tol;
+lnsoltol = reltol;
 
 s = 1;
 
@@ -160,7 +156,7 @@ while tc < tend
 
 
 
-    sc = tol + max(abs(ycn), abs(yhat))*tol;
+    sc = abstol + max(abs(ycn), abs(yhat))*reltol;
     
     err = rms((ycn - yhat)./sc);
     

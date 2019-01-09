@@ -1,210 +1,146 @@
-classdef DEnKF < csl.datools.DAmethod
+classdef DEnKF < handle
     
     properties
-        EnsErr
-        EnsembleSize
-        LocalisationFunction
-        InflationValue
-        PreviousAnalysis
-        PreviousTimeSpan
-        CurrentObsErr
-        CurrentSyntheticObs
-        CurrentObs
-        Qestimate
-        IsQError
-        Iteration
+        Model
+        ModelError
+        Observation
+        Ensemble
+        Inflation
+        Localization
         Parallel
-        RipIts
+    end
+    
+    properties (Dependent)
+        BestEstimate
+        NumEnsemble
     end
     
     methods
-        function obj = DEnKF(problem, ... % An ODE test problem 
-                solver,              ... % An ODE solver
-                H,                   ... % A vector type of linear observation operator
-                ensembleSize,        ... % The size of the ensemble to use
-                E,                   ... % How to perturb the ensemble
-                Qest,                ... % Estimate of model error
-                locF,                ... % Optional argument for the localisation function
-                infV, parallel, ripits)                    % Inflation Value
+        function obj = DEnKF(varargin)
+            p = inputParser;
+            p.KeepUnmatched = true;
+            addRequired(p, 'Model', @(x) isa(x, 'csl.datools.Model'));
+            addParameter(p, 'ModelError', csl.datools.error.Error);
+            addParameter(p, 'NumEnsemble', 1);
+            addParameter(p, 'Inflation', 1);
+            addParameter(p, 'Localization', @(~, ~, H) csl.datools.tapering.trivial(H));
+            addParameter(p, 'Parallel', false);
+            parse(p, varargin{:});
             
-            obj = obj@csl.datools.DAmethod(problem, solver, H);
+            s = p.Results;
             
-            obj.EnsembleSize = ensembleSize;
-            obj.EnsErr = E;
-            obj.Qestimate = Qest;
+            obj.Model        = s.Model;
+            obj.ModelError   = s.ModelError;
+            obj.Inflation    = s.Inflation;
+            obj.Localization = s.Localization;
+            obj.Parallel     = s.Parallel;
+            ensN = s.NumEnsemble;
             
-            if nargin < 9
-                parallel = true;
-            end
+            kept = p.Unmatched;
             
-            obj.Parallel = parallel;
+            p = inputParser;
+            addParameter(p, 'Observation', csl.datools.observation.Observation(s.Model.NumVars));
+            addParameter(p, 'EnsembleGenerator', @(x) randn(s.Model.NumVars, x));
+            parse(p, kept);
             
-            ensN  = obj.EnsembleSize;
-            numVars = obj.Problem.NumVars;
+            s = p.Results;
             
-            y0 = obj.Problem.Y0;
+            obj.Ensemble = s.EnsembleGenerator(ensN);
+            obj.Observation = s.Observation;
             
-            obj.Iteration = 0;
-            
-            % We build the ensemble. This does require the use of Q. Q can be an
-            % approximation.
-            if isa(E, 'function_handle')
-                Xf = E(ensN);
-            else
-                Xf = mvnrnd(y0, E, ensN).';
-            end
-            
-            obj.CurrentBestGuess = Xf;
-            
-            if nargin < 7
-                % We will set our localisation function to be a do nothing function
-                obj.LocalisationFunction = @(~) ones(numVars);
-            else
-                obj.LocalisationFunction = locF;
-            end
-            
-            if nargin < 8
-                obj.InflationValue = 1;
-            else
-                obj.InflationValue = infV;
-            end
-            
-            if nargin < 9
-                obj.RipIts = [1, 1];
-            else
-                obj.RipIts = ripits;
-            end
-            
-            if normest(Qest)
-                obj.IsQError = true;
-            else
-                obj.IsQError = false;
-            end
-            
-        end
-        function forecast(obj)
-            obj.PreviousAnalysis = obj.CurrentBestGuess;
-            obj.PreviousTimeSpan = obj.Problem.TimeSpan;
-            
-            ensN = obj.EnsembleSize;
-            Xas = obj.CurrentBestGuess;
-            solver = obj.Solver;
-            f = obj.Problem.F;
-            tspan = obj.Problem.TimeSpan;
-            isqerr = obj.IsQError;
-            Q = obj.Qestimate;
-            if obj.Parallel
-                parfor i = 1:ensN
-                    Xa =  Xas(:, i);
-                    [~, Xf] = solver(f, tspan, Xa);
-                    Xf = Xf.';
-                    if isqerr
-                        Xas(:, i) =  mvnrnd(Xf(:, end), Q).';
-                    else
-                        Xas(:,i) =  Xf(:,end);
-                    end
-                    
-                    % obj.Problem.DrawFrame(obj.Problem.TimeSpan(1), Xf(:,end), []);
-                end
-            else
-                for i = 1:ensN
-                    Xa =  Xas(:, i);
-                    [~, Xf] = solver(f, tspan, Xa);
-                    Xf = Xf.';
-                    if isqerr
-                        Xas(:, i) =  mvnrnd(Xf(:, end), Q).';
-                    else
-                        Xas(:,i) =  Xf(:,end);
-                    end
-                    
-                    % obj.Problem.DrawFrame(obj.Problem.TimeSpan(1), Xf(:,end), []);
-                end
-            end
-            obj.CurrentBestGuess = Xas;
-            
-            obj.Problem.Y0 = mean(obj.CurrentBestGuess, 2);
-            tend = obj.Problem.TimeSpan(end);
-            deltat = diff(obj.Problem.TimeSpan);
-            obj.Problem.TimeSpan = [tend, tend + deltat];
-        end
-        function analysis(obj, observation, R)
-            obj.CurrentObsErr = R;
-            obj.CurrentObs = observation;
-           
-            H = obj.H;
-            ensN = obj.EnsembleSize;
-            y = observation;
-            
-            if obj.Iteration < obj.RipIts(2) 
-                ripits = obj.RipIts(1);
-            else
-                ripits = 1;
-            end
-            
-            for ri = 1:ripits
-                Xf =  obj.CurrentBestGuess;
-                Xfm = mean(Xf, 2);
-                
-                if ri == 1
-                    Af = Xf - Xfm*ones(1, ensN);
-                    Af = obj.InflationValue * Af;
-                    Xf = Xfm*ones(1, ensN) + Af;
-                    obj.CurrentBestGuess = Xf;
-                end
-                
-                Af = Xf - Xfm*ones(1, ensN);
-                
-                PfHt = obj.getForecastCovarience(Af);
-                
-                % S matrix from Law et al.
-                S = PfHt(H, :) + R;
-                
-                % Kalman gain matrix
-                K = PfHt/S;
-                
-                % Hey, analysis step of EnKF
-                d = (y - Xfm(H, :));
-                Xam = Xfm + K*d;
-                
-                Aa = Af - 1/2*K*Af(H, :);
-                
-                %Aa = obj.InflationValue * Aa;
-                
-                Xa = Xam*ones(1, ensN) + Aa;
-                
-                obj.CurrentBestGuess = Xa;
-                
-                
-                
-                % The mean of the analysis is our current understanding of the state
-                % of the system.
-                obj.Problem.Y0 = Xam;
-                
-                
-                %obj.Problem.DrawFrame(obj.Problem.TimeSpan(1), obj.Problem.Y0, []);
-            end
-            
-            obj.Iteration = obj.Iteration + 1;
         end
         
-        function PfHt = getForecastCovarience(obj, Af)
-            ensN = obj.EnsembleSize;
-
-            H = obj.H;
+        function forecast(obj)
             
-            PfHt = 1/(ensN - 1) * (Af*(Af(H, :)'));
+            times = zeros(obj.NumEnsemble, 1);
             
-            % Localise
-            rhoHt = obj.getLocalisationMatrix(H);
+            if obj.Parallel
+                rhs = obj.Model.ODEModel.F;
+                tspan = obj.Model.TimeSpan;
+                solver = obj.Model.Solver;
+                ens    = obj.Ensemble;
+                ensN   = obj.NumEnsemble;
+                
+                parfor ensi = 1:ensN
+                    
+                    [t, y] = solver(rhs, tspan, ens(:, ensi));
+                    
+                    time = t(end) - t(1);
+                    yend = y(end, :).';
+                    
+                    ens(:, ensi) = yend;
+                    times(ensi) = time;
+                end
+                
+                for ensi = 1:ensN
+                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), ens(:, ensi));
+                end
+                
+            else
+                for ensi = 1:obj.NumEnsemble
+                    [time, yend] = obj.Model.solve([], obj.Ensemble(:, ensi));
+                    
+                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), yend);
+                    times(ensi) = time;
+                end
+            end
             
-            % Schur product
-            PfHt = rhoHt .* PfHt;
+            obj.Model.update(mean(times), obj.BestEstimate);
             
-            %Pf = obj.InflationValue * Pf;
         end
-        function rho = getLocalisationMatrix(obj, H)
-            rho = obj.LocalisationFunction(obj, H);
+        
+        function analysis(obj, R, y)
+            
+            tc = obj.Model.TimeSpan(1);
+            
+            xf = obj.Ensemble;
+            ensN = obj.NumEnsemble;
+            
+            
+            xfm = mean(xf, 2);
+            
+            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxfm = mean(Hxf, 2);
+            
+            Af = xf - repmat(xfm, 1, ensN);
+            
+            HAf = Hxf - repmat(Hxfm, 1, ensN);
+            
+            % tapering
+            inflation = obj.Inflation;
+            H = obj.Observation.linearization(tc, xf);
+            rhoHt = obj.Localization(tc, xfm, H);
+            HrhoHt = H*rhoHt;
+            
+            
+            PfHt = rhoHt.*((1/(ensN - 1))*(Af*(HAf')));
+            HPfHt = HrhoHt.*((1/(ensN - 1))*(HAf*(HAf')));
+            
+            S = HPfHt + R;
+            
+            d = y - Hxfm;
+            
+            xam = xfm + PfHt*(S\d);
+            
+            Aa = Af - 0.5*PfHt*(S\HAf);
+            
+            Aa = inflation*Aa;
+            
+            obj.Ensemble = repmat(xam, 1, ensN) + Aa;
+            
+            obj.Model.update(0, obj.BestEstimate);
+            
         end
+        
+        function ensN = get.NumEnsemble(obj)
+            ensN = size(obj.Ensemble, 2);
+        end
+        
+        
+        function ensN = get.BestEstimate(obj)
+            ensN = mean(obj.Ensemble, 2);
+        end
+        
     end
     
 end

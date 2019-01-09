@@ -9,13 +9,13 @@ y(1, :) = y0;
 h = diff(t);
 
 for i = 1:steps
-    y(i + 1, :) = rk4step(t(i),y(i,:), f, h(i));
+    y(i + 1, :) = rk4step(t(i), y(i, :), f, h(i));
 end
 
 end
-
 
 function yplus = rk4step(tc, yc, f, h)
+
 yplus = yc;
 
 ksi = f(tc        , yc.');
