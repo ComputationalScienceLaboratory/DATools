@@ -1,4 +1,4 @@
-function [alpha, steps] = armijowolfe(ffun, gfun, x, p, g)
+function [alpha, steps] = armijowolfe(cfun, x, p, g)
 
 %% Constant setup
 alphahat = 1;
@@ -10,11 +10,11 @@ maxbacklineits = 10;
 
 %% Initial setup
 alpha    = alphahat;
-Phi0     = ffun(x);
-Phihat   = ffun(x + alphahat*p);
+Phi0     = cfun(x);
+Phihat   = cfun(x + alphahat*p);
 dPhi0    = p.' * g;
 Phialpha = Phihat;
-wolfeg   = gfun(x + alpha*p);
+[~, wolfeg]   = cfun(x + alpha*p);
 
 steps = 0;
 
@@ -42,8 +42,8 @@ while (Phialpha > Phi0 + c1*alpha*dPhi0 || ...
         alphaplus  = (-b + disc)/(3*a);
         alphaminus = (-b - disc)/(3*a);
         
-        Phihalphaplus = ffun(x + alphaplus*p);
-        Phihalphaminus = ffun(x + alphaminus*p);
+        Phihalphaplus = cfun(x + alphaplus*p);
+        Phihalphaminus = cfun(x + alphaminus*p);
 
         if Phihalphaplus < Phihalphaminus
             alpha = alphaplus;
@@ -57,11 +57,11 @@ while (Phialpha > Phi0 + c1*alpha*dPhi0 || ...
     else
         %% Quadratic interpolation
         alpha = -(dPhi0*alphahat)/(2*(Phihat - Phi0 - dPhi0*alphahat));
-        Phialpha = ffun(x + alpha*p);
+        Phialpha = cfun(x + alpha*p);
     end
     
 
-    wolfeg   = gfun(x + alpha*p);
+    [~, wolfeg] = cfun(x + alpha*p);
     steps = steps + 1;
 end
 
