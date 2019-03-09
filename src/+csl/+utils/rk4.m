@@ -1,4 +1,8 @@
-function [t, y]=rk4(f, tspan, y0, steps)
+function [t, y]=rk4(f, tspan, y0, steps, outputfcn)
+
+if nargin < 5 || isempty(outputfcn)
+    outputfcn = [];
+end
 
 t = linspace(tspan(1), tspan(end), steps + 1);
 
@@ -10,6 +14,10 @@ h = diff(t);
 
 for i = 1:steps
     y(i + 1, :) = rk4step(t(i), y(i, :), f, h(i));
+    
+    if ~isempty(outputfcn)
+        outputfcn(t(i + 1), y(i + 1, :).', []);
+    end
 end
 
 end
