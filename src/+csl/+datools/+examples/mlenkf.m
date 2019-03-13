@@ -1,52 +1,30 @@
+clear;
+% Set rng for standard experiments
+rng(20);
 
-addpath('/home/apopov/Dropbox/Projects/ode-test-problems/src');
+addpath('../../ode-test-problems/src');
 
 csl.datools.presetmodels.mlqgsoEn
 
-inflation = sqrt(1.6);
-%inflation = sqrt((ensN - 1)/(ensN - 3));
+%inflation = sqrt(1.08);
+inflation = sqrt((ensN - 1)/(ensN - 3));
 
 %inflation = 1;
 
-%radius = 15.0;
-radius = 16;
-localization = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
-%localization = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
+%radius = 25.0;
+radius = 5;
+%localization = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
+localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
+
+radiuslow = 5;
+localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
 
-% enkfstart = csl.datools.statistical.ensemble.DEnKF(model{end}, ...
-%     'Observation', observation, ...
-%     'NumEnsemble', ensN*numel(model), ...
-%     'ModelError', modelerror, ...
-%     'EnsembleGenerator', ensembleGenerator, ...
-%     'Inflation', inflation, ...
-%     'Localization', localization, ...
-%     'Parallel', true);
-
-% starttimes = 10;
-% 
-% for i = 1:starttimes
-%     
-%     % forecast
-%     nature.evolve();
-%     enkfstart.forecast();
-% 
-%     % observe
-%     xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-%     y = enkfstart.Observation.observeWithError(model{1}.TimeSpan(1), xt);
-%     
-%     % analysis
-%     enkfstart.analysis(R, y);
-% 
-% end
-% 
-% 
-% ensembleGenerator = @(x) enkfstart.Ensemble(:, randperm(ensN*numel(model), x));
 
 
-%model = {model{2}}
+%model = {model{end}};
 
-enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
+enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -55,17 +33,32 @@ enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
     'Localization', localization, ...
     'Parallel', true);
 
+
+
+enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
+    'Observation', observation, ...
+    'NumEnsemble', ensN, ...
+    'ModelError', modelerror, ...
+    'EnsembleGenerator', ensembleGenerator, ...
+    'Inflation', inflation, ...
+    'Localization', localization{2}, ...
+    'Parallel', true);
+
+enkfC.Ensemble = enkf.Ensembles{end};
+
 spinup = 500;
 times = 11*spinup;
 
-spinup = 5;
-times = 1000;
+%spinup = 10;
+%times = 1000;
 
 
 
-mses = zeros(times - spinup, 1);
+msesML = zeros(times - spinup, 1);
+msesC = zeros(times - spinup, 1);
 
-rmse = nan;
+rmseML = nan;
+rmseC = nan;
 
 ps = '';
 
@@ -74,6 +67,7 @@ for i = 1:times
     % forecast
     nature.evolve();
     enkf.forecast();
+    enkfC.forecast();
 
     % observe
     xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
@@ -81,27 +75,37 @@ for i = 1:times
     
     % analysis
     enkf.analysis(R, y);
+    enkfC.analysis(R, y);
     
     xa = enkf.BestEstimate;
+    xaC = enkfC.BestEstimate;
     
     subplot(2, 1, 1);
     imagesc(reshape(xt, 127, 127));
     axis square; colorbar;
-    subplot(2, 1, 2);
+    subplot(2, 2, 3);
     imagesc(reshape(xa, 127, 127));
     axis square; colorbar;
+    title('ML');
+    subplot(2, 2, 4);
+    imagesc(reshape(xaC, 127, 127));
+    axis square; colorbar;
+    title('Control');
     drawnow;
     
     if i > spinup
-        mses(i - spinup) = mean((xa - xt).^2);
-        rmse = sqrt(mean(mses(1:(i - spinup))));
+        msesML(i - spinup) = mean((xa - xt).^2);
+        rmseML = sqrt(mean(msesML(1:(i - spinup))));
+        
+        msesC(i - spinup) = mean((xaC - xt).^2);
+        rmseC = sqrt(mean(msesC(1:(i - spinup))));
     end
     
     for kk = 1:numel(ps)
         fprintf('\b');
     end
     
-    ps = sprintf('step: %d, rmse: %.5f\n', i, rmse);
+    ps = sprintf('step: %d, rmseML: %.5f, rmseC: %.5f\n', i, rmseML, rmseC);
     
     fprintf(ps);
 end

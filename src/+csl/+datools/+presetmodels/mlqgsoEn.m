@@ -1,7 +1,7 @@
 %% Create Nature
 
-natureode = csl.odetestproblems.qgso.presets.GC('huge', 'low');
-%natureode = csl.odetestproblems.qgso.presets.GC('large', 'high');
+%natureode = csl.odetestproblems.qgso.presets.GC('huge', 'low');
+natureode = csl.odetestproblems.qgso.presets.GC('large', 'high');
 
 
 natureode.TimeSpan = [0, 5];
@@ -23,9 +23,9 @@ vf2cs = [1/4*ones(1, nc), 1/2*ones(1, nc), 1/4*ones(1, nc)];
 If2c1D = sparse(if2cs, jf2cs, vf2cs, nc, nf);
 If2c = kron(speye(nc), If2c1D) * kron(If2c1D, speye(nf));
 
-naturetomodel = csl.datools.observation.Linear(nature.NumVars, 'H', If2c);
+%naturetomodel = csl.datools.observation.Linear(nature.NumVars, 'H', If2c);
 
-%naturetomodel = csl.datools.observation.Observation(nature.NumVars);
+naturetomodel = csl.datools.observation.Observation(nature.NumVars);
 
 %% Create model hierarchy
 
@@ -33,24 +33,41 @@ naturetomodel = csl.datools.observation.Linear(nature.NumVars, 'H', If2c);
 load('qgdmd.mat');
 
 modelode{1}  = csl.odetestproblems.qgso.presets.GC('large', 'high');
+modelode{1}.Parameters.linearsolver = 'multigrid';
+modelode{1}.Parameters.linearsolvertol = 1e-2;
+
 modelode{1}.TimeSpan = [0 5];
-solvermodel{1} = @(~, t, y) deal(t, [y, dmdprop(y)].');
-%hm = 0.125;
-%solvermodel{1} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
+hm = 0.25;
+solvermodel{1} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
 %solvermodel{1} = @(f, t, y) ode45(f, t, y);
+%solvermodel{1} = @(~, t, y) ode45(@(t, yy) dmdprop{4}(yy), t, y);
+%hm = 0.25;
+%solvermodel{1} = @(f, t, y) csl.utils.rk4(@(t, yy) dmdprop{1}(yy), t, y, round(diff(t)/hm));
 model{1}  = csl.datools.Model(modelode{1},  solvermodel{1});
 
 
 % The highest level will be a standard QG model
 
 modelode{2}  = csl.odetestproblems.qgso.presets.GC('large', 'high');
+%modelode{2}.Parameters.linearsolver = 'multigrid';
+%modelode{2}.Parameters.linearsolvertol = 1e-4;
+
 modelode{2}.TimeSpan = [0 5];
-solvermodel{2} = @(~, t, y) deal(t, [y, dmdprop(y)].');
 hm = 0.125;
 solvermodel{2} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
 %solvermodel{2} = @(f, t, y) ode45(f, t, y);
+%solvermodel{2} = @(~, t, y) deal(t, [y, dmdprop{3}(y)].');
+%solvermodel{2} = @(~, t, y) ode45(@(t, yy) dmdprop{4}(yy), t, y);
 model{2}  = csl.datools.Model(modelode{2},  solvermodel{2});
 
+% Control model for DEnKF
+modelodeC  = csl.odetestproblems.qgso.presets.GC('large', 'high');
+modelodeC.Parameters = modelode{2}.Parameters;
+
+modelodeC.TimeSpan = [0 5];
+solvermodelC = solvermodel{2};
+%solvermodel{2} = @(f, t, y) ode45(f, t, y);
+modelC  = csl.datools.Model(modelodeC,  solvermodelC);
 
 %% Create observations
 

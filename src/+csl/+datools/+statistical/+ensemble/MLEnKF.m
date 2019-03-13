@@ -1,4 +1,4 @@
-classdef MLDEnKF < handle
+classdef MLEnKF < handle
     
     properties
         Models
@@ -16,7 +16,7 @@ classdef MLDEnKF < handle
     end
     
     methods
-        function obj = MLDEnKF(varargin)
+        function obj = MLEnKF(varargin)
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Models', @(x) isa(x, 'cell'));
@@ -44,9 +44,7 @@ classdef MLDEnKF < handle
             parse(p, kept);
             
             s = p.Results;
-            
-            hmm = 0;
-            
+                        
             for ei = 1:(numel(obj.Models)*2 - 1)
                 obj.Ensembles{ei} = s.EnsembleGenerator(ensN);
             end
@@ -68,7 +66,13 @@ classdef MLDEnKF < handle
                     rhs = obj.Models{mi}.ODEModel.F;
                     tspan = obj.Models{mi}.TimeSpan;
                     solver = obj.Models{mi}.Solver;
-                    ens    = obj.Ensembles{ei};
+                    %ens    = obj.Ensembles{ei};
+                    % test
+                    if ei == 2
+                        ens    = obj.Ensembles{3};
+                    else
+                        ens    = obj.Ensembles{ei};
+                    end
                     ensN   = obj.NumEnsemble;
                     
                     parfor ensi = 1:ensN
@@ -109,6 +113,7 @@ classdef MLDEnKF < handle
             
             H = obj.Observation.linearization(tc, []);
             
+            
             xfm  = cell(numel(obj.Ensembles), 1);
             Hxfm = cell(numel(obj.Ensembles), 1);
             Af   = cell(numel(obj.Ensembles), 1);
@@ -117,10 +122,10 @@ classdef MLDEnKF < handle
             PfHt = 0;
             HPfHt = 0;
             
-            if tc < 55
-                ssmall = 0;
+            if tc < 100
+                ssmall = 1/2;
             else
-                ssmall = 1/10;
+                ssmall = 1/2;
             end
             
             for ei = 1:numel(obj.Ensembles)
@@ -145,15 +150,17 @@ classdef MLDEnKF < handle
                     s = s*ssmall;
                 end
                 
+
+                
                 rhoHt = obj.Localization{mi}(tc, xfm{ei}, H);
                 HrhoHt = H*rhoHt;
                 
-                PfHt = PfHt + s*rhoHt*((1/(ensN - 1))*(Af{ei}*(HAf{ei}.')));
+                PfHt = PfHt + s*rhoHt.*((1/(ensN - 1))*(Af{ei}*(HAf{ei}.')));
                 tmp = ((1/(ensN - 1))*(HAf{ei}*(HAf{ei}.')));
-                if ei ~= numel(obj.Ensembles)
-                    tmp = tmp - diag(diag(tmp));
-                end
-                HPfHt = HPfHt + s*HrhoHt*tmp;
+                %if ei ~= numel(obj.Ensembles)
+                %    tmp = tmp - diag(diag(tmp));
+                %end
+                HPfHt = HPfHt + s*HrhoHt.*tmp;
                 
             end
             
@@ -161,20 +168,21 @@ classdef MLDEnKF < handle
             
             % tapering
             
-            
+            %rhoHt = obj.Localization(tc, xfm{ei}, H);
+            %HrhoHt = H*rhoHt;
             
             % do Kody Law's thing
             %[Ud, Sd, Vd] = svd(HPfHt);
-            %k = sum(Sd > 0);
+            %k = sum(diag(Sd) > 0);
             %HPfHt = Ud(:, 1:k)*Sd(1:k, 1:k)*(Vd(:, 1:k).');
             
             %PfHt  = rhoHt.*PfHt;
             %HPfHt = HrhoHt.*HPfHt;
             
-            %dHPfHt = diag(HPfHt);
-            %HPfHt = HPfHt - diag(dHPfHt);
-            %dHPfHt(dHPfHt < 0) = 0;
-            %HPfHt = HPfHt + diag(dHPfHt);
+            dHPfHt = diag(HPfHt);
+            HPfHt = HPfHt - diag(dHPfHt);
+            dHPfHt(dHPfHt < 0) = 0;
+            HPfHt = HPfHt + diag(dHPfHt);
             
             %din = min(min(diag(HPfHt)), 0);
             %HPfHt = HPfHt - din*eye(size(HPfHt));
@@ -193,16 +201,20 @@ classdef MLDEnKF < handle
             
             %S = HPfHt + lambda*R;
             
+            yp  = cell(numel(obj.Models), 1);
             
-            for ei = 1:numel(obj.Ensembles)
-                
+            for mi = 1:numel(obj.Models)
+                yp{mi} = sqrtm(R)*randn(size(HAf{1}));
+            end
+            
+            for ei = 1:numel(obj.Ensembles)                
                 d = y - Hxfm{ei};
                 
                 mi = floor((ei + 1)/2);
                 
                 xam = xfm{ei} + PfHt*(S\d);
                 
-                Aa = Af{ei} - 0.5*PfHt*(S\HAf{ei});
+                Aa = Af{ei} + PfHt*(S\(yp{mi} - HAf{ei}));
                 
                 Aa = inflation*Aa;
                 
