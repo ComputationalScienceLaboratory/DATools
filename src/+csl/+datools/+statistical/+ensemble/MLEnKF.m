@@ -68,8 +68,8 @@ classdef MLEnKF < handle
                     solver = obj.Models{mi}.Solver;
                     %ens    = obj.Ensembles{ei};
                     % test
-                    if ei == 2
-                        ens    = obj.Ensembles{3};
+                    if mod(ei, 2) == 0
+                        ens    = obj.Ensembles{ei + 1};
                     else
                         ens    = obj.Ensembles{ei};
                     end
@@ -123,7 +123,7 @@ classdef MLEnKF < handle
             HPfHt = 0;
             
             if tc < 100
-                ssmall = 1/2;
+                ssmall = 1/5;
             else
                 ssmall = 1/2;
             end
