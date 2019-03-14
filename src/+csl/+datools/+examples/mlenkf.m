@@ -46,11 +46,11 @@ enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
 
 enkfC.Ensemble = enkf.Ensembles{end};
 
-spinup = 500;
-times = 11*spinup;
+%spinup = 500;
+%times = 11*spinup;
 
-%spinup = 10;
-%times = 1000;
+spinup = 25;
+times = 250;
 
 
 

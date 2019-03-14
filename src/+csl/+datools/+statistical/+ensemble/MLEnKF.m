@@ -123,7 +123,7 @@ classdef MLEnKF < handle
             HPfHt = 0;
             
             if tc < 100
-                ssmall = 1/5;
+                ssmall = 1/2;
             else
                 ssmall = 1/2;
             end
