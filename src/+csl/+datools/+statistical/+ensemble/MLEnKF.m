@@ -122,10 +122,10 @@ classdef MLEnKF < handle
             PfHt = 0;
             HPfHt = 0;
             
-            if tc < 100
-                ssmall = 1/2;
+            if tc < 25
+                ssmall = 1/4;
             else
-                ssmall = 1/2;
+                ssmall = 1/4;
             end
             
             for ei = 1:numel(obj.Ensembles)
@@ -222,8 +222,7 @@ classdef MLEnKF < handle
                 
                 obj.Models{mi}.update(0, obj.BestEstimate);
                 
-            end
-            
+            end   
             
         end
         

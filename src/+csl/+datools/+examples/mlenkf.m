@@ -12,11 +12,12 @@ inflation = sqrt((ensN - 1)/(ensN - 3));
 %inflation = 1;
 
 %radius = 25.0;
-radius = 5;
-%localization = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
-localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
+radius = 15;
+localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
+%localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 5;
+radiuslow = 10;
+%localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
 localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
 
@@ -49,7 +50,7 @@ enkfC.Ensemble = enkf.Ensembles{end};
 %spinup = 500;
 %times = 11*spinup;
 
-spinup = 25;
+spinup = 50;
 times = 250;
 
 
@@ -77,21 +78,35 @@ for i = 1:times
     enkf.analysis(R, y);
     enkfC.analysis(R, y);
     
-    xa = enkf.BestEstimate;
+    xa = mean(enkf.Ensembles{end}, 2);
+    
+    xaBL = mean(enkf.Ensembles{1}, 2);
+    
+    %xa = enkf.BestEstimate;
     xaC = enkfC.BestEstimate;
     
-    subplot(2, 1, 1);
-    imagesc(reshape(xt, 127, 127));
+    subplot(2, 2, 1);
+    imagesc(reshape(nature.State, 255, 255));
     axis square; colorbar;
+    title('Nature');
+    subplot(2, 2, 2);
+    imagesc(reshape(xaC, 127, 127));
+    axis square; colorbar;
+    title('EnKF');
+    
+    
+    
     subplot(2, 2, 3);
     imagesc(reshape(xa, 127, 127));
     axis square; colorbar;
-    title('ML');
+    title('MLEnKF (Top Layer)');
+    
     subplot(2, 2, 4);
-    imagesc(reshape(xaC, 127, 127));
+    imagesc(reshape(xaBL, 127, 127));
     axis square; colorbar;
-    title('Control');
+    title('MLEnKF (Bottom Layer)');
     drawnow;
+
     
     if i > spinup
         msesML(i - spinup) = mean((xa - xt).^2);
