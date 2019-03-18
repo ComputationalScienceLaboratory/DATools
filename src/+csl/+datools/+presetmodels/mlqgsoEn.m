@@ -1,6 +1,6 @@
 %% Create Nature
 
-natureode = csl.odetestproblems.qgso.presets.GC('huge', 'low');
+natureode = csl.odetestproblems.qgso.presets.GC('large', 'low');
 %natureode = csl.odetestproblems.qgso.presets.GC('large', 'high');
 
 
@@ -15,6 +15,7 @@ nature = csl.datools.Model(natureode, solvernature, ...
 
 % create the nature-to-model operator
 nf = sqrt(natureode.NumVars);
+nf = 255;
 nc = (nf - 1)/2;
 rc = 1:nc;
 if2cs = [rc, rc, rc];
@@ -56,9 +57,9 @@ Ic15_2_f31 = 4*If31_2_c15.';
 
 
 
-naturetomodel = csl.datools.observation.Linear(nature.NumVars, 'H', If2c);
+%naturetomodel = csl.datools.observation.Linear(nature.NumVars, 'H', If2c);
 
-%naturetomodel = csl.datools.observation.Observation(nature.NumVars);
+naturetomodel = csl.datools.observation.Observation(nature.NumVars);
 
 %% Create model hierarchy
 
@@ -76,7 +77,8 @@ modelode{1}.TimeSpan = [0 5];
 %solvermodel{1} = @(f, t, y) ode45(f, t, y);
 %solvermodel{1} = @(~, t, y) ode45(@(t, yy) dmdprop{4}(yy), t, y);
 %solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*dmdprop{5}(If127_2_c63*y)].');
-solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(Ic15_2_f31*qgresmodel.run(If31_2_c15*(If63_2_c31*(If127_2_c63*y)))))].');
+%solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(Ic15_2_f31*qgresmodel.run(If31_2_c15*(If63_2_c31*(If127_2_c63*y)))))].');
+solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(qgresmodel.run((If63_2_c31*(If127_2_c63*y)))))].');
 %hm = 0.25;
 %solvermodel{1} = @(f, t, y) csl.utils.rk4(@(t, yy) dmdprop{1}(yy), t, y, round(diff(t)/hm));
 model{1}  = csl.datools.Model(modelode{1},  solvermodel{1});
@@ -85,11 +87,12 @@ model{1}  = csl.datools.Model(modelode{1},  solvermodel{1});
 % The highest level will be a standard QG model
 
 modelode{2}  = csl.odetestproblems.qgso.presets.GC('large', 'high');
-modelode{2}.Parameters.linearsolver = 'multigrid';
-modelode{2}.Parameters.linearsolvertol = 1e-4;
+modelode{2}.Parameters.e = 1e-7;
+%modelode{2}.Parameters.linearsolver = 'multigrid';
+%modelode{2}.Parameters.linearsolvertol = 1e-7;
 
 modelode{2}.TimeSpan = [0 5];
-hm = 0.5;
+hm = 0.25;
 solvermodel{2} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
 %solvermodel{2} = @(f, t, y) ode45(f, t, y);
 %solvermodel{2} = @(~, t, y) deal(t, [y, dmdprop{3}(y)].');
@@ -115,11 +118,13 @@ no = 300;
 observeindicies = round(linspace(1, model{2}.NumVars, no));
 nobsvars = numel(observeindicies);
 
-obserrormodel = csl.datools.error.Gaussian('CovarianceSqrt', speye(nobsvars));
+R = 4*speye(nobsvars);
+
+obserrormodel = csl.datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 observation = csl.datools.observation.Indexed(model{2}.NumVars, ...
     'ErrorModel', obserrormodel, ...
     'Indicies', observeindicies);
-R = speye(nobsvars);
+
 
 %% Do the rest
 

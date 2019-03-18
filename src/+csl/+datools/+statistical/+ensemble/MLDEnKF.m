@@ -8,11 +8,17 @@ classdef MLDEnKF < handle
         Inflation
         Localization
         Parallel
+        Ssmall
+        RIPIterations
     end
     
     properties (Dependent)
         BestEstimate
         NumEnsemble
+    end
+    
+    properties (Hidden = true)
+        DidRIP
     end
     
     methods
@@ -25,6 +31,8 @@ classdef MLDEnKF < handle
             addParameter(p, 'Inflation', 1);
             addParameter(p, 'Localization', @(~, ~, H) csl.datools.tapering.trivial(H));
             addParameter(p, 'Parallel', false);
+            addParameter(p, 'Ssmall', 1);
+            addParameter(p, 'RIPIterations', 0);
             parse(p, varargin{:});
             
             s = p.Results;
@@ -34,6 +42,9 @@ classdef MLDEnKF < handle
             obj.Inflation    = s.Inflation;
             obj.Localization = s.Localization;
             obj.Parallel     = s.Parallel;
+            obj.Ssmall = s.Ssmall;
+            obj.RIPIterations = s.RIPIterations;
+            obj.DidRIP        = false;
             ensN = s.NumEnsemble;
             
             kept = p.Unmatched;
@@ -44,8 +55,6 @@ classdef MLDEnKF < handle
             parse(p, kept);
             
             s = p.Results;
-            
-            hmm = 0;
             
             for ei = 1:(numel(obj.Models)*2 - 1)
                 obj.Ensembles{ei} = s.EnsembleGenerator(ensN);
@@ -68,7 +77,13 @@ classdef MLDEnKF < handle
                     rhs = obj.Models{mi}.ODEModel.F;
                     tspan = obj.Models{mi}.TimeSpan;
                     solver = obj.Models{mi}.Solver;
-                    ens    = obj.Ensembles{ei};
+                    %ens    = obj.Ensembles{ei};
+                    % test
+                    if mod(ei, 2) == 0
+                        ens    = obj.Ensembles{ei + 1};
+                    else
+                        ens    = obj.Ensembles{ei};
+                    end
                     ensN   = obj.NumEnsemble;
                     
                     parfor ensi = 1:ensN
@@ -105,113 +120,121 @@ classdef MLDEnKF < handle
         
         function analysis(obj, R, y)
             
-            tc = obj.Models{1}.TimeSpan(1);
-            
-            H = obj.Observation.linearization(tc, []);
-            
-            xfm  = cell(numel(obj.Ensembles), 1);
-            Hxfm = cell(numel(obj.Ensembles), 1);
-            Af   = cell(numel(obj.Ensembles), 1);
-            HAf  = cell(numel(obj.Ensembles), 1);
-            
-            PfHt = 0;
-            HPfHt = 0;
-            
-            if tc < 55
-                ssmall = 0;
+            if obj.DidRIP
+                ripits = 1;
             else
-                ssmall = 1/10;
+                ripits = obj.RIPIterations;
             end
             
-            for ei = 1:numel(obj.Ensembles)
+            for ripit = 1:(ripits + 1)
                 
-                mi = floor((ei + 1)/2);
+                tc = obj.Models{1}.TimeSpan(1);
                 
-                xf = obj.Ensembles{ei};
-                ensN = obj.NumEnsemble;
+                H = obj.Observation.linearization(tc, []);
                 
-                xfm{ei} = mean(xf, 2);
+                xfm  = cell(numel(obj.Ensembles), 1);
+                Hxfm = cell(numel(obj.Ensembles), 1);
+                Af   = cell(numel(obj.Ensembles), 1);
+                HAf  = cell(numel(obj.Ensembles), 1);
                 
-                Hxf = obj.Observation.observeWithoutError(tc, xf);
-                Hxfm{ei} = mean(Hxf, 2);
+                PfHt = 0;
+                HPfHt = 0;
                 
-                Af{ei} = xf - repmat(xfm{ei}, 1, ensN);
+                ssmall = obj.Ssmall;
                 
-                HAf{ei} = Hxf - repmat(Hxfm{ei}, 1, ensN);
+                inflation = obj.Inflation;
                 
-                s = mod(ei, 2) * 2 - 1;
-                
-                if ei ~= numel(obj.Ensembles)
-                    s = s*ssmall;
+                for ei = 1:numel(obj.Ensembles)
+                    
+                    mi = floor((ei + 1)/2);
+                    
+                    xf = obj.Ensembles{ei};
+                    ensN = obj.NumEnsemble;
+                    
+                    xfm{ei} = mean(xf, 2);
+                    
+                    Hxf = obj.Observation.observeWithoutError(tc, xf);
+                    Hxfm{ei} = mean(Hxf, 2);
+                    
+                    Af{ei} = xf - repmat(xfm{ei}, 1, ensN);
+                    
+                    Af{ei} = inflation*Af{ei};
+                    
+                    HAf{ei} = Hxf - repmat(Hxfm{ei}, 1, ensN);
+                    
+                    s = mod(ei, 2) * 2 - 1;
+                    
+                    if ei ~= numel(obj.Ensembles)
+                        s = s*ssmall;
+                    end
+                    
+                    rhoHt = obj.Localization{mi}(tc, xfm{ei}, H);
+                    HrhoHt = H*rhoHt;
+                    
+                    PfHt = PfHt + s*rhoHt.*((1/(ensN - 1))*(Af{ei}*(HAf{ei}.')));
+                    tmp = ((1/(ensN - 1))*(HAf{ei}*(HAf{ei}.')));
+                    %if ei ~= numel(obj.Ensembles)
+                    %    tmp = tmp - diag(diag(tmp));
+                    %end
+                    HPfHt = HPfHt + s*HrhoHt.*tmp;
+                    
                 end
                 
-                rhoHt = obj.Localization{mi}(tc, xfm{ei}, H);
-                HrhoHt = H*rhoHt;
                 
-                PfHt = PfHt + s*rhoHt*((1/(ensN - 1))*(Af{ei}*(HAf{ei}.')));
-                tmp = ((1/(ensN - 1))*(HAf{ei}*(HAf{ei}.')));
-                if ei ~= numel(obj.Ensembles)
-                    tmp = tmp - diag(diag(tmp));
+                % tapering
+                
+                
+                
+                % do Kody Law's thing
+                %[Ud, Sd, Vd] = svd(HPfHt);
+                %k = sum(Sd > 0);
+                %HPfHt = Ud(:, 1:k)*Sd(1:k, 1:k)*(Vd(:, 1:k).');
+                
+                %PfHt  = rhoHt.*PfHt;
+                %HPfHt = HrhoHt.*HPfHt;
+                
+                dHPfHt = diag(HPfHt);
+                HPfHt = HPfHt - diag(dHPfHt);
+                dHPfHt(dHPfHt < 0) = 0;
+                HPfHt = HPfHt + diag(dHPfHt);
+                
+                %din = min(min(diag(HPfHt)), 0);
+                %HPfHt = HPfHt - din*eye(size(HPfHt));
+                
+                
+                S = HPfHt + R;
+                
+                %lambda = 1;
+                %
+                %             [~, flag] = chol(HPfHt + R);
+                %
+                %             while flag
+                %                 [~, flag] = chol(HPfHt + lambda*R);
+                %                 lambda = lambda*1.25;
+                %             end
+                
+                %S = HPfHt + lambda*R;
+                
+                
+                for ei = 1:numel(obj.Ensembles)
+                    
+                    d = y - Hxfm{ei};
+                    
+                    mi = floor((ei + 1)/2);
+                    
+                    xam = xfm{ei} + PfHt*(S\d);
+                    
+                    Aa = Af{ei} - 0.5*PfHt*(S\HAf{ei});
+                    
+                    %Aa = inflation*Aa;
+                    
+                    obj.Ensembles{ei} = repmat(xam, 1, ensN) + Aa;
+                    
+                    obj.Models{mi}.update(0, obj.BestEstimate);
+                    
                 end
-                HPfHt = HPfHt + s*HrhoHt*tmp;
                 
             end
-            
-            inflation = obj.Inflation;
-            
-            % tapering
-            
-            
-            
-            % do Kody Law's thing
-            %[Ud, Sd, Vd] = svd(HPfHt);
-            %k = sum(Sd > 0);
-            %HPfHt = Ud(:, 1:k)*Sd(1:k, 1:k)*(Vd(:, 1:k).');
-            
-            %PfHt  = rhoHt.*PfHt;
-            %HPfHt = HrhoHt.*HPfHt;
-            
-            %dHPfHt = diag(HPfHt);
-            %HPfHt = HPfHt - diag(dHPfHt);
-            %dHPfHt(dHPfHt < 0) = 0;
-            %HPfHt = HPfHt + diag(dHPfHt);
-            
-            %din = min(min(diag(HPfHt)), 0);
-            %HPfHt = HPfHt - din*eye(size(HPfHt));
-            
-            
-            S = HPfHt + R;
-            
-            %lambda = 1;
-            %
-            %             [~, flag] = chol(HPfHt + R);
-            %
-            %             while flag
-            %                 [~, flag] = chol(HPfHt + lambda*R);
-            %                 lambda = lambda*1.25;
-            %             end
-            
-            %S = HPfHt + lambda*R;
-            
-            
-            for ei = 1:numel(obj.Ensembles)
-                
-                d = y - Hxfm{ei};
-                
-                mi = floor((ei + 1)/2);
-                
-                xam = xfm{ei} + PfHt*(S\d);
-                
-                Aa = Af{ei} - 0.5*PfHt*(S\HAf{ei});
-                
-                Aa = inflation*Aa;
-                
-                obj.Ensembles{ei} = repmat(xam, 1, ensN) + Aa;
-                
-                obj.Models{mi}.update(0, obj.BestEstimate);
-                
-            end
-            
             
         end
         
@@ -222,11 +245,17 @@ classdef MLDEnKF < handle
         
         function xa = get.BestEstimate(obj)
             
+            ssmall = obj.Ssmall;
+            
             xa = 0;
             
             for ei = 1:numel(obj.Ensembles)
                 
                 s = mod(ei, 2) * 2 - 1;
+                
+                if ei ~= numel(obj.Ensembles)
+                    s = s*ssmall;
+                end
                 
                 xa = xa + s*mean(obj.Ensembles{ei}, 2);
                 

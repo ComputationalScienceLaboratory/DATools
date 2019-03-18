@@ -6,44 +6,49 @@ addpath('../../ode-test-problems/src');
 
 csl.datools.presetmodels.mlqgsoEn
 
-%inflation = sqrt(1.08);
-inflation = sqrt((ensN - 1)/(ensN - 3));
+%inflation = 1.08;
+inflation = sqrt(1 + 2/(ensN - 3));
 
 %inflation = 1;
 
-%radius = 25.0;
-radius = 15;
+radius = 10;
 localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
+%radius = 20;
 %localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 10;
-%localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
-localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
+radiuslow = 15;
+localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
+%localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
 
 
 
 %model = {model{end}};
 
-enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
+ssmall = 1/4;
+
+enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
     'EnsembleGenerator', ensembleGenerator, ...
     'Inflation', inflation, ...
     'Localization', localization, ...
-    'Parallel', true);
+    'Parallel', true, ...
+    'Ssmall', ssmall, ...
+    'RIPIterations', 0);
 
 
 
-enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
+enkfC = csl.datools.statistical.ensemble.DEnKF(modelC, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
     'EnsembleGenerator', ensembleGenerator, ...
     'Inflation', inflation, ...
     'Localization', localization{2}, ...
-    'Parallel', true);
+    'Parallel', true, ...
+    'RIPIterations', 0);
 
 enkfC.Ensemble = enkf.Ensembles{end};
 
@@ -51,7 +56,7 @@ enkfC.Ensemble = enkf.Ensembles{end};
 %times = 11*spinup;
 
 spinup = 50;
-times = 250;
+times = 300;
 
 
 
@@ -78,15 +83,16 @@ for i = 1:times
     enkf.analysis(R, y);
     enkfC.analysis(R, y);
     
-    xa = mean(enkf.Ensembles{end}, 2);
+    xaTL = mean(enkf.Ensembles{end}, 2);
     
     xaBL = mean(enkf.Ensembles{1}, 2);
     
-    %xa = enkf.BestEstimate;
+    xa = enkf.BestEstimate;
     xaC = enkfC.BestEstimate;
     
     subplot(2, 2, 1);
-    imagesc(reshape(nature.State, 255, 255));
+    %imagesc(reshape(nature.State, 255, 255));
+    imagesc(reshape(xt, 127, 127));
     axis square; colorbar;
     title('Nature');
     subplot(2, 2, 2);
@@ -95,13 +101,17 @@ for i = 1:times
     title('EnKF');
     
     
-    
-    subplot(2, 2, 3);
+    subplot(2, 3, 4);
     imagesc(reshape(xa, 127, 127));
+    axis square; colorbar;
+    title('MLEnKF');
+    
+    subplot(2, 3, 5);
+    imagesc(reshape(xaTL, 127, 127));
     axis square; colorbar;
     title('MLEnKF (Top Layer)');
     
-    subplot(2, 2, 4);
+    subplot(2, 3, 6);
     imagesc(reshape(xaBL, 127, 127));
     axis square; colorbar;
     title('MLEnKF (Bottom Layer)');
@@ -109,7 +119,7 @@ for i = 1:times
 
     
     if i > spinup
-        msesML(i - spinup) = mean((xa - xt).^2);
+        msesML(i - spinup) = mean((xaTL - xt).^2);
         rmseML = sqrt(mean(msesML(1:(i - spinup))));
         
         msesC(i - spinup) = mean((xaC - xt).^2);

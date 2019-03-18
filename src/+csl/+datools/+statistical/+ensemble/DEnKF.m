@@ -8,11 +8,16 @@ classdef DEnKF < handle
         Inflation
         Localization
         Parallel
+        RIPIterations
     end
     
     properties (Dependent)
         BestEstimate
         NumEnsemble
+    end
+    
+    properties (Hidden = true)
+        DidRIP
     end
     
     methods
@@ -25,15 +30,18 @@ classdef DEnKF < handle
             addParameter(p, 'Inflation', 1);
             addParameter(p, 'Localization', @(~, ~, H) csl.datools.tapering.trivial(H));
             addParameter(p, 'Parallel', false);
+            addParameter(p, 'RIPIterations', 0);
             parse(p, varargin{:});
             
             s = p.Results;
             
-            obj.Model        = s.Model;
-            obj.ModelError   = s.ModelError;
-            obj.Inflation    = s.Inflation;
-            obj.Localization = s.Localization;
-            obj.Parallel     = s.Parallel;
+            obj.Model         = s.Model;
+            obj.ModelError    = s.ModelError;
+            obj.Inflation     = s.Inflation;
+            obj.Localization  = s.Localization;
+            obj.Parallel      = s.Parallel;
+            obj.RIPIterations = s.RIPIterations;
+            obj.DidRIP        = false;
             ensN = s.NumEnsemble;
             
             kept = p.Unmatched;
@@ -91,44 +99,58 @@ classdef DEnKF < handle
         
         function analysis(obj, R, y)
             
-            tc = obj.Model.TimeSpan(1);
+            if obj.DidRIP
+                ripits = 1;
+            else
+                ripits = obj.RIPIterations;
+            end
             
-            xf = obj.Ensemble;
-            ensN = obj.NumEnsemble;
-            
-            
-            xfm = mean(xf, 2);
-            
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
-            Hxfm = mean(Hxf, 2);
-            
-            Af = xf - repmat(xfm, 1, ensN);
-            
-            HAf = Hxf - repmat(Hxfm, 1, ensN);
-            
-            % tapering
-            inflation = obj.Inflation;
-            H = obj.Observation.linearization(tc, xf);
-            rhoHt = obj.Localization(tc, xfm, H);
-            HrhoHt = H*rhoHt;
-            
-            
-            PfHt = rhoHt.*((1/(ensN - 1))*(Af*(HAf')));
-            HPfHt = HrhoHt.*((1/(ensN - 1))*(HAf*(HAf')));
-            
-            S = HPfHt + R;
-            
-            d = y - Hxfm;
-            
-            xam = xfm + PfHt*(S\d);
-            
-            Aa = Af - 0.5*PfHt*(S\HAf);
-            
-            Aa = inflation*Aa;
-            
-            obj.Ensemble = repmat(xam, 1, ensN) + Aa;
-            
-            obj.Model.update(0, obj.BestEstimate);
+            for ripit = 1:(ripits + 1)
+                
+                inflation = obj.Inflation;
+                
+                tc = obj.Model.TimeSpan(1);
+                
+                xf = obj.Ensemble;
+                ensN = obj.NumEnsemble;
+                
+                
+                xfm = mean(xf, 2);
+                
+                Hxf = obj.Observation.observeWithoutError(tc, xf);
+                Hxfm = mean(Hxf, 2);
+                
+                Af = xf - repmat(xfm, 1, ensN);
+                
+                Af = inflation*Af;
+                
+                HAf = Hxf - repmat(Hxfm, 1, ensN);
+                
+                % tapering
+                
+                H = obj.Observation.linearization(tc, xf);
+                rhoHt = obj.Localization(tc, xfm, H);
+                HrhoHt = H*rhoHt;
+                
+                
+                PfHt = rhoHt.*((1/(ensN - 1))*(Af*(HAf')));
+                HPfHt = HrhoHt.*((1/(ensN - 1))*(HAf*(HAf')));
+                
+                S = HPfHt + R;
+                
+                d = y - Hxfm;
+                
+                xam = xfm + PfHt*(S\d);
+                
+                Aa = Af - 0.5*PfHt*(S\HAf);
+                
+                %Aa = inflation*Aa;
+                
+                obj.Ensemble = repmat(xam, 1, ensN) + Aa;
+                
+                obj.Model.update(0, obj.BestEstimate);
+                
+            end
             
         end
         
