@@ -1,8 +1,10 @@
 %% Create Nature
 
-natureode = csl.odetestproblems.qgso.presets.GC('large', 'low');
+natureode = otp.qgso.presets.Canonical( ...
+    'Size', 'large', ...
+    'Dissipation', 'low', ...
+    'XBoundaryCondition', 'C');
 %natureode = csl.odetestproblems.qgso.presets.GC('large', 'high');
-
 
 natureode.TimeSpan = [0, 5];
 
@@ -66,8 +68,12 @@ naturetomodel = csl.datools.observation.Observation(nature.NumVars);
 % The lowest level will be a DMD based model.
 load('qgdmd.mat');
 load('qgresnn_best.mat');
+load('qg_pod_basis.mat');
 
-modelode{1}  = csl.odetestproblems.qgso.presets.GC('large', 'high');
+modelode{1}  = otp.qgso.presets.Canonical( ...
+    'Size', 'large', ...
+    'Dissipation', 'high', ...
+    'XBoundaryCondition', 'C');
 %modelode{1}.Parameters.linearsolver = 'multigrid';
 %modelode{1}.Parameters.linearsolvertol = 1e-2;
 
@@ -78,7 +84,18 @@ modelode{1}.TimeSpan = [0 5];
 %solvermodel{1} = @(~, t, y) ode45(@(t, yy) dmdprop{4}(yy), t, y);
 %solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*dmdprop{5}(If127_2_c63*y)].');
 %solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(Ic15_2_f31*qgresmodel.run(If31_2_c15*(If63_2_c31*(If127_2_c63*y)))))].');
-solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(qgresmodel.run((If63_2_c31*(If127_2_c63*y)))))].');
+
+
+% Good
+%solvermodel{1} = @(~, t, y) deal(t, [y, Ic63_2_f127*(Ic31_2_f63*(qgresmodel.run((If63_2_c31*(If127_2_c63*y)))))].');
+
+% POD
+modelode{1}.Parameters.pod = struct('basis', U, 'arakawabasis', UArakawa, 'arakawaDEIM', PArakawa);
+
+%solvermodel{1} = @(~, t, y) modelode{1}.fromPOD(ode45(modelode{1}.RhsPOD.F, t, U'*y));
+hm = 1;
+solvermodel{1} = @(~, t, y) modelode{1}.fromPOD(csl.utils.rk4(modelode{1}.RhsPOD.F, t, U'*y, round(diff(t)/hm)));
+
 %hm = 0.25;
 %solvermodel{1} = @(f, t, y) csl.utils.rk4(@(t, yy) dmdprop{1}(yy), t, y, round(diff(t)/hm));
 model{1}  = csl.datools.Model(modelode{1},  solvermodel{1});
@@ -86,8 +103,11 @@ model{1}  = csl.datools.Model(modelode{1},  solvermodel{1});
 
 % The highest level will be a standard QG model
 
-modelode{2}  = csl.odetestproblems.qgso.presets.GC('large', 'high');
-modelode{2}.Parameters.e = 1e-7;
+modelode{2}  = otp.qgso.presets.Canonical( ...
+    'Size', 'large', ...
+    'Dissipation', 'high', ...
+    'XBoundaryCondition', 'C');
+%modelode{2}.Parameters.e = 1e-7;
 %modelode{2}.Parameters.linearsolver = 'multigrid';
 %modelode{2}.Parameters.linearsolvertol = 1e-7;
 
@@ -101,7 +121,9 @@ solvermodel{2} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
 model{2}  = csl.datools.Model(modelode{2},  solvermodel{2});
 
 % Control model for DEnKF
-modelodeC  = csl.odetestproblems.qgso.presets.GC('large', 'high');
+modelodeC  = otp.qgso.presets.Canonical( ...
+    'Size', 'large', ...
+    'Dissipation', 'high');
 modelodeC.Parameters = modelode{2}.Parameters;
 %modelodeC.Parameters = modelode{1}.Parameters;
 

@@ -63,7 +63,7 @@ classdef DEnKF < handle
             times = zeros(obj.NumEnsemble, 1);
             
             if obj.Parallel
-                rhs = obj.Model.ODEModel.F;
+                rhs = obj.Model.ODEModel.Rhs.F;
                 tspan = obj.Model.TimeSpan;
                 solver = obj.Model.Solver;
                 ens    = obj.Ensemble;

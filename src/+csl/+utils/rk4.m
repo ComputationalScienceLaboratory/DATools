@@ -20,6 +20,10 @@ for i = 1:steps
     end
 end
 
+if nargout < 2
+    t = struct('x', t, 'y', y.');
+end
+
 end
 
 function yplus = rk4step(tc, yc, f, h)

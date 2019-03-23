@@ -18,7 +18,7 @@ classdef Model < handle
             
             
             p = inputParser;
-            addRequired(p, 'ODEModel', @(x) isa(x, 'csl.odetestproblems.Problem'));
+            addRequired(p, 'ODEModel');%, @(x) isa(x, 'csl.odetestproblems.Problem'));
             addRequired(p, 'Solver', @(x) nargin(x) == 3);
             addParameter(p, 'SynthError', csl.datools.error.Error);
             parse(p, varargin{:});
@@ -59,7 +59,7 @@ classdef Model < handle
                y0 = obj.ODEModel.Y0;
             end
             
-            [t, y] = obj.Solver(obj.ODEModel.F, tspan, y0);
+            [t, y] = obj.Solver(obj.ODEModel.Rhs.F, tspan, y0);
             
             time = t(end) - t(1);
             yend = y(end, :).';

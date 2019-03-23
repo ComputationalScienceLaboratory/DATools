@@ -1,6 +1,6 @@
 clear;
 % Set rng for standard experiments
-rng(20);
+rng(17);
 
 addpath('../../ode-test-problems/src');
 
@@ -16,7 +16,7 @@ localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
 %radius = 20;
 %localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 15;
+radiuslow = 10;
 localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
 %localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
@@ -25,9 +25,9 @@ localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H)
 
 %model = {model{end}};
 
-ssmall = 1/4;
+ssmall = 1/3;
 
-enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
+enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -40,7 +40,7 @@ enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
 
 
 
-enkfC = csl.datools.statistical.ensemble.DEnKF(modelC, ...
+enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -92,27 +92,27 @@ for i = 1:times
     
     subplot(2, 2, 1);
     %imagesc(reshape(nature.State, 255, 255));
-    imagesc(reshape(xt, 127, 127));
+    imagesc(reshape(xt, 127, 127).');
     axis square; colorbar;
     title('Nature');
     subplot(2, 2, 2);
-    imagesc(reshape(xaC, 127, 127));
+    imagesc(reshape(xaC, 127, 127).');
     axis square; colorbar;
     title('EnKF');
     
     
     subplot(2, 3, 4);
-    imagesc(reshape(xa, 127, 127));
+    imagesc(reshape(xa, 127, 127).');
     axis square; colorbar;
     title('MLEnKF');
     
     subplot(2, 3, 5);
-    imagesc(reshape(xaTL, 127, 127));
+    imagesc(reshape(xaTL, 127, 127).');
     axis square; colorbar;
     title('MLEnKF (Top Layer)');
     
     subplot(2, 3, 6);
-    imagesc(reshape(xaBL, 127, 127));
+    imagesc(reshape(xaBL, 127, 127).');
     axis square; colorbar;
     title('MLEnKF (Bottom Layer)');
     drawnow;

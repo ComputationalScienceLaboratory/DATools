@@ -73,7 +73,7 @@ classdef MLEnKF < handle
                 times = zeros(obj.NumEnsemble, 1);
                 
                 if obj.Parallel
-                    rhs = obj.Models{mi}.ODEModel.F;
+                    rhs = obj.Models{mi}.ODEModel.Rhs.F;
                     tspan = obj.Models{mi}.TimeSpan;
                     solver = obj.Models{mi}.Solver;
                     %ens    = obj.Ensembles{ei};
