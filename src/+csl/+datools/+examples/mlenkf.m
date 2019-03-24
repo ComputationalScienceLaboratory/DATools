@@ -1,4 +1,4 @@
-clear;
+clear; close all;
 % Set rng for standard experiments
 rng(17);
 
@@ -11,12 +11,12 @@ inflation = sqrt(1 + 2/(ensN - 3));
 
 %inflation = 1;
 
-radius = 10;
+radius = 7;
 localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
 %radius = 20;
 %localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 10;
+radiuslow = 7;
 localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
 %localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
@@ -27,7 +27,7 @@ localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H)
 
 ssmall = 1/3;
 
-enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
+enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -40,7 +40,7 @@ enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
 
 
 
-enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
+enkfC = csl.datools.statistical.ensemble.DEnKF(modelC, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -68,6 +68,12 @@ rmseC = nan;
 
 ps = '';
 
+naturefigure = figure;
+controlfigure = figure;
+mlfigure = figure;
+topfigure = figure;
+botfigure = figure;
+
 for i = 1:times
     
     % forecast
@@ -90,32 +96,60 @@ for i = 1:times
     xa = enkf.BestEstimate;
     xaC = enkfC.BestEstimate;
     
-    subplot(2, 2, 1);
-    %imagesc(reshape(nature.State, 255, 255));
-    imagesc(reshape(xt, 127, 127).');
-    axis square; colorbar;
-    title('Nature');
-    subplot(2, 2, 2);
-    imagesc(reshape(xaC, 127, 127).');
-    axis square; colorbar;
-    title('EnKF');
     
-    
-    subplot(2, 3, 4);
-    imagesc(reshape(xa, 127, 127).');
-    axis square; colorbar;
-    title('MLEnKF');
-    
-    subplot(2, 3, 5);
-    imagesc(reshape(xaTL, 127, 127).');
-    axis square; colorbar;
-    title('MLEnKF (Top Layer)');
-    
-    subplot(2, 3, 6);
-    imagesc(reshape(xaBL, 127, 127).');
-    axis square; colorbar;
-    title('MLEnKF (Bottom Layer)');
+    set(0,'CurrentFigure', naturefigure)
+    natureode.OutputFcn(nature.TimeSpan(end), xt, []);
+    suptitle('Nature');
     drawnow;
+    
+    set(0,'CurrentFigure', controlfigure)
+    natureode.OutputFcn(nature.TimeSpan(end), xaC, []);
+    suptitle('Control');
+    drawnow;
+    
+    
+    set(0,'CurrentFigure', mlfigure)
+    natureode.OutputFcn(nature.TimeSpan(end), xa, []);
+    suptitle('MLEnKF');
+    drawnow;
+    
+    set(0,'CurrentFigure', topfigure)
+    natureode.OutputFcn(nature.TimeSpan(end), xaTL, []);
+    suptitle('Top Layer');
+    drawnow;
+    
+    set(0,'CurrentFigure', botfigure)
+    natureode.OutputFcn(nature.TimeSpan(end), xaBL, []);
+    suptitle('Bottom Layer');
+    drawnow;
+    
+    
+    %subplot(2, 2, 1);
+    %imagesc(reshape(nature.State, 255, 255));
+    %imagesc(reshape(xt, 127, 127).');
+    %axis square; colorbar;
+    %title('Nature');
+    %     subplot(2, 2, 2);
+    %     imagesc(reshape(xaC, 127, 127).');
+    %     axis square; colorbar;
+    %     title('EnKF');
+    %
+    %
+    %     subplot(2, 3, 4);
+    %     imagesc(reshape(xa, 127, 127).');
+    %     axis square; colorbar;
+    %     title('MLEnKF');
+    %
+    %     subplot(2, 3, 5);
+    %     imagesc(reshape(xaTL, 127, 127).');
+    %     axis square; colorbar;
+    %     title('MLEnKF (Top Layer)');
+    %
+    %     subplot(2, 3, 6);
+    %     imagesc(reshape(xaBL, 127, 127).');
+    %     axis square; colorbar;
+    %     title('MLEnKF (Bottom Layer)');
+    %     drawnow;
 
     
     if i > spinup
