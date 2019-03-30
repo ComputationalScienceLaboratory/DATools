@@ -98,14 +98,14 @@ classdef MLDEnKF < handle
                     end
                     
                     for ensi = 1:ensN
-                        obj.Ensembles{ei}(:, ensi) = obj.ModelError.adderr(obj.Models{mi}.TimeSpan(end), ens(:, ensi));
+                        obj.Ensembles{ei}(:, ensi) = obj.ModelError{mi}.adderr(obj.Models{mi}.TimeSpan(end), ens(:, ensi));
                     end
                     
                 else
                     for ensi = 1:obj.NumEnsemble
                         [time, yend] = obj.Models{mi}.solve([], obj.Ensembles{ei}(:, ensi));
                         
-                        obj.Ensembles{ei}(:, ensi) = obj.ModelError.adderr(obj.Models{mi}.TimeSpan(end), yend);
+                        obj.Ensembles{ei}(:, ensi) = obj.ModelError{mi}.adderr(obj.Models{mi}.TimeSpan(end), yend);
                         times(ensi) = time;
                     end
                 end
@@ -129,8 +129,6 @@ classdef MLDEnKF < handle
             for ripit = 1:(ripits + 1)
                 
                 tc = obj.Models{1}.TimeSpan(1);
-                
-                H = obj.Observation.linearization(tc, []);
                 
                 xfm  = cell(numel(obj.Ensembles), 1);
                 Hxfm = cell(numel(obj.Ensembles), 1);
@@ -167,6 +165,8 @@ classdef MLDEnKF < handle
                     if ei ~= numel(obj.Ensembles)
                         s = s*ssmall;
                     end
+                    
+                    H = obj.Observation.linearization(tc, xfm{ei});
                     
                     rhoHt = obj.Localization{mi}(tc, xfm{ei}, H);
                     HrhoHt = H*rhoHt;

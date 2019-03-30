@@ -97,14 +97,14 @@ classdef MLEnKF < handle
                     end
                     
                     for ensi = 1:ensN
-                        obj.Ensembles{ei}(:, ensi) = obj.ModelError.adderr(obj.Models{mi}.TimeSpan(end), ens(:, ensi));
+                        obj.Ensembles{ei}(:, ensi) = obj.ModelError{mi}.adderr(obj.Models{mi}.TimeSpan(end), ens(:, ensi));
                     end
                     
                 else
                     for ensi = 1:obj.NumEnsemble
                         [time, yend] = obj.Models{mi}.solve([], obj.Ensembles{ei}(:, ensi));
                         
-                        obj.Ensembles{ei}(:, ensi) = obj.ModelError.adderr(obj.Models{mi}.TimeSpan(end), yend);
+                        obj.Ensembles{ei}(:, ensi) = obj.ModelError{mi}.adderr(obj.Models{mi}.TimeSpan(end), yend);
                         times(ensi) = time;
                     end
                 end
@@ -130,7 +130,7 @@ classdef MLEnKF < handle
                 
                 tc = obj.Models{1}.TimeSpan(1);
                 
-                H = obj.Observation.linearization(tc, []);
+                
                 
                 
                 xfm  = cell(numel(obj.Ensembles), 1);
@@ -174,6 +174,8 @@ classdef MLEnKF < handle
                     if ei ~= numel(obj.Ensembles)
                         s = s*ssmall;
                     end
+                    
+                    H = obj.Observation.linearization(tc, xfm{ei});
                     
                     rhoHt = obj.Localization{mi}(tc, xfm{ei}, H);
                     HrhoHt = H*rhoHt;
@@ -246,6 +248,14 @@ classdef MLEnKF < handle
                     obj.Models{mi}.update(0, obj.BestEstimate);
                     
                 end
+                
+                
+                % REMOVE LATER
+                AaB = obj.Ensembles{1} - repmat(mean(obj.Ensembles{1}, 2), 1, ensN);
+                
+                xmT = mean(obj.Ensembles{3}, 2);
+                
+                obj.Ensembles{1} = AaB + repmat(xmT, 1, ensN);
                 
             end
             

@@ -1,7 +1,8 @@
 classdef Gaussian < csl.datools.error.Error
     
     properties
-        Rsqrt
+        CovarianceSqrt
+        Bias
     end
     
     methods
@@ -9,15 +10,17 @@ classdef Gaussian < csl.datools.error.Error
         function obj = Gaussian(varargin)
             p = inputParser;
             addOptional(p, 'CovarianceSqrt', 1);
+            addOptional(p, 'Bias', 0);
             parse(p, varargin{:});
             
             s = p.Results;
             
-            obj.Rsqrt = s.CovarianceSqrt;
+            obj.CovarianceSqrt = s.CovarianceSqrt;
+            obj.Bias = s.Bias;
         end
         
         function xp = adderr(obj, ~, x)
-            xp = x + obj.Rsqrt*randn(numel(x), 1);
+            xp = x + obj.CovarianceSqrt*randn(numel(x), 1) + obj.Bias;
         end
         
     end

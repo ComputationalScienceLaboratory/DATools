@@ -8,9 +8,13 @@ n = size(H, 2);
 
 I2 = 1:n;
 
-I1 = find(sum(abs(H), 1)).';
+I1 = find(sum(abs(H).', 2));
 
-rhoHt = zeros(n, numel(I1));
+%I1 = 1:size(H, 1);
+
+%rhoHt = zeros(n, numel(I1));
+
+rhoHt = zeros(n, size(H.', 2));
 if numel(r) ~= n
     r = repmat(r, n/numel(r), 1);
 end
@@ -24,7 +28,9 @@ for jr = 1:numel(I1)
     ks2 = d(t, y, I2, j)./r(I2);
     
     
-    rhoHt(:, jr) = m(gcf(ks1).', gcf(ks2).');
+    %rhoHt(:, jr) = m(gcf(ks1).', gcf(ks2).')*(H(:, j).');
+    
+    rhoHt = rhoHt + m(gcf(ks1).', gcf(ks2).')*(H(:, j).');
 end
 
 end

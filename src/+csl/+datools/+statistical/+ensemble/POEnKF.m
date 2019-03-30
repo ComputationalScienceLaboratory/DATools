@@ -128,7 +128,7 @@ classdef POEnKF < handle
                 
                 % tapering
                 
-                H = obj.Observation.linearization(tc, xf);
+                H = obj.Observation.linearization(tc, xfm);
                 rhoHt = obj.Localization(tc, xfm, H);
                 HrhoHt = H*rhoHt;
                 

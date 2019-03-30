@@ -11,12 +11,12 @@ inflation = sqrt(1 + 2/(ensN - 3));
 
 %inflation = 1;
 
-radius = 7;
+radius = 10;
 localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
 %radius = 20;
 %localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 7;
+radiuslow = 10;
 localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
 %localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
@@ -27,7 +27,7 @@ localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H)
 
 ssmall = 1/3;
 
-enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
+enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
     'ModelError', modelerror, ...
@@ -40,23 +40,23 @@ enkf = csl.datools.statistical.ensemble.MLDEnKF(model, ...
 
 
 
-enkfC = csl.datools.statistical.ensemble.DEnKF(modelC, ...
+enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
-    'ModelError', modelerror, ...
+    'ModelError', modelerror{end}, ...
     'EnsembleGenerator', ensembleGenerator, ...
     'Inflation', inflation, ...
-    'Localization', localization{2}, ...
+    'Localization', localization{end}, ...
     'Parallel', true, ...
     'RIPIterations', 0);
 
 enkfC.Ensemble = enkf.Ensembles{end};
 
-%spinup = 500;
-%times = 11*spinup;
+spinup = 250;
+times = 11*spinup;
 
-spinup = 50;
-times = 300;
+%spinup = 50;
+%times = 300;
 
 
 
@@ -68,10 +68,10 @@ rmseC = nan;
 
 ps = '';
 
-naturefigure = figure;
+% naturefigure = figure;
 controlfigure = figure;
-mlfigure = figure;
-topfigure = figure;
+% mlfigure = figure;
+% topfigure = figure;
 botfigure = figure;
 
 for i = 1:times
@@ -97,30 +97,30 @@ for i = 1:times
     xaC = enkfC.BestEstimate;
     
     
-    set(0,'CurrentFigure', naturefigure)
-    natureode.OutputFcn(nature.TimeSpan(end), xt, []);
-    suptitle('Nature');
-    drawnow;
-    
+%     set(0,'CurrentFigure', naturefigure)
+%     natureode.OutputFcn(nature.TimeSpan(end), xt, []);
+%     suptitle('Nature');
+%     drawnow;
+%     
     set(0,'CurrentFigure', controlfigure)
     natureode.OutputFcn(nature.TimeSpan(end), xaC, []);
     suptitle('Control');
     drawnow;
-    
-    
-    set(0,'CurrentFigure', mlfigure)
-    natureode.OutputFcn(nature.TimeSpan(end), xa, []);
-    suptitle('MLEnKF');
-    drawnow;
-    
-    set(0,'CurrentFigure', topfigure)
-    natureode.OutputFcn(nature.TimeSpan(end), xaTL, []);
-    suptitle('Top Layer');
-    drawnow;
+%     
+%     
+%     set(0,'CurrentFigure', mlfigure)
+%     natureode.OutputFcn(nature.TimeSpan(end), xa, []);
+%     suptitle('MLEnKF');
+%     drawnow;
+%     
+%     set(0,'CurrentFigure', topfigure)
+%     natureode.OutputFcn(nature.TimeSpan(end), xaTL, []);
+%     suptitle('Top Layer');
+%     drawnow;
     
     set(0,'CurrentFigure', botfigure)
     natureode.OutputFcn(nature.TimeSpan(end), xaBL, []);
-    suptitle('Bottom Layer');
+    suptitle('Bottom Level');
     drawnow;
     
     
