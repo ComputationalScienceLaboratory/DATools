@@ -17,8 +17,10 @@ natureode.TimeSpan = [0, DT];
 
 solvernature = @(f, t, y) ode45(f, t, y);
 
-%hm = 0.25;
+hm = 0.25;
 %solvernature = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
+solvernature = @(f, t, y) csl.utils.tvdrk3(f, t, y, round(diff(t)/hm));
+
 
 % nature will have no sythetic error
 naturesyntherror = csl.datools.error.Error;
@@ -54,6 +56,8 @@ modelode{1}.TimeSpan = [0 DT];
 modelode{1}.Parameters.pod = struct('basis', U, 'arakawabasis', UArakawa, 'arakawaDEIM', PArakawa);
 hm = 0.25;
 solvermodel{1} = @(~, t, y) modelode{1}.fromPOD(csl.utils.rk4_filter(modelode{1}.RhsPOD.F, t, U'*y, round(diff(t)/hm), modelode{1}.FilterPOD));
+solvermodel{1} = @(~, t, y) modelode{1}.fromPOD(csl.utils.tvdrk3_filter(modelode{1}.RhsPOD.F, t, U'*y, round(diff(t)/hm), modelode{1}.FilterPOD));
+
 
 %solvermodel{1} = @(~, t, y) modelode{1}.fromPOD(csl.utils.rk4_filter(@(tt, yy) modelode{1}.RhsPOD.F(tt, yy) + U'*PODbias/DT, t, U'*y, round(diff(t)/hm), modelode{1}.FilterPOD));
 
@@ -84,6 +88,7 @@ modelode{2} = otp.qg.presets.PopovSandu2019('Model');
 modelode{2}.TimeSpan = [0 DT];
 hm = 0.25;
 solvermodel{2} = @(f, t, y) csl.utils.rk4(f, t, y, round(diff(t)/hm));
+solvermodel{2} = @(f, t, y) csl.utils.tvdrk3(f, t, y, round(diff(t)/hm));
 %solvermodel{2} = @(f, t, y) ode45(f, t, y);
 %solvermodel{2} = @(~, t, y) deal(t, [y, dmdprop{3}(y)].');
 %solvermodel{2} = @(~, t, y) ode45(@(t, yy) dmdprop{4}(yy), t, y);
@@ -107,13 +112,13 @@ modelC  = csl.datools.Model(modelodeC,  solvermodelC);
 
 %% Create observations
 
-no = 100;
-%no = 150;
+no = 150;
+%no = 50;
 
 % we only want to observe the top layer
 nvar = model{2}.NumVars/model{2}.ODEModel.Parameters.nlayers;
 
-observeindicies = round(linspace(1, model{2}.NumVars, no));
+observeindicies = round(linspace(1, nvar, no));
 nobsvars = numel(observeindicies);
 
 R = 4*speye(nobsvars);

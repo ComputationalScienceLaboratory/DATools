@@ -234,6 +234,13 @@ classdef MLDEnKF < handle
                     
                 end
                 
+                % REMOVE LATER
+                %AaB = obj.Ensembles{1} - repmat(mean(obj.Ensembles{1}, 2), 1, ensN);
+                
+                %xmT = mean(obj.Ensembles{3}, 2);
+                
+                %obj.Ensembles{1} = AaB + repmat(xmT, 1, ensN);
+                
             end
             
         end

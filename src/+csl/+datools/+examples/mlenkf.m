@@ -16,7 +16,7 @@ localization{2} = @(t, y, H) csl.datools.tapering.gc(t, y, radius, distfn, H);
 %radius = 20;
 %localization{2} = @(t, y, H) csl.datools.tapering.gauss(t, y, radius, distfn, H);
 
-radiuslow = 10;
+radiuslow = 7;
 localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H);
 %localization{1} = @(t, y, H) csl.datools.tapering.gauss(t, y, radiuslow, distfn, H);
 
@@ -25,7 +25,7 @@ localization{1} = @(t, y, H) csl.datools.tapering.gc(t, y, radiuslow, distfn, H)
 
 %model = {model{end}};
 
-ssmall = 1/3;
+ssmall = 1/2;
 
 enkf = csl.datools.statistical.ensemble.MLEnKF(model, ...
     'Observation', observation, ...
@@ -52,11 +52,11 @@ enkfC = csl.datools.statistical.ensemble.POEnKF(modelC, ...
 
 enkfC.Ensemble = enkf.Ensembles{end};
 
-spinup = 250;
-times = 11*spinup;
+% spinup = 250;
+% times = 11*spinup;
 
-%spinup = 50;
-%times = 300;
+spinup = 100;
+times = 500;
 
 
 
