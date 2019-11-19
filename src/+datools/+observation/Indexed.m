@@ -1,4 +1,4 @@
-classdef Indexed < csl.datools.observation.Observation
+classdef Indexed < datools.observation.Observation
     
     properties
         Indicies
@@ -14,7 +14,7 @@ classdef Indexed < csl.datools.observation.Observation
             
             s = p.Results;
             
-            obj@csl.datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.Observation(nvars, p.Unmatched);
             
             obj.Indicies = s.Indicies;
             

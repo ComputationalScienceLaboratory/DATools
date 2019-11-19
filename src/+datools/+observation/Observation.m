@@ -10,7 +10,7 @@ classdef Observation < handle
         function obj = Observation(varargin)
             p = inputParser;
             addRequired(p, 'NumVars');
-            addParameter(p, 'ErrorModel', csl.datools.error.Error);
+            addParameter(p, 'ErrorModel', datools.error.Error);
             parse(p, varargin{:});
             
             s = p.Results;

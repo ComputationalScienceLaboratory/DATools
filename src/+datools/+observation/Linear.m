@@ -1,4 +1,4 @@
-classdef Linear < csl.datools.observation.Observation
+classdef Linear < datools.observation.Observation
     
     properties
         H
@@ -14,7 +14,7 @@ classdef Linear < csl.datools.observation.Observation
             
             s = p.Results;
             
-            obj@csl.datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.Observation(nvars, p.Unmatched);
             
             obj.H = s.H;
             

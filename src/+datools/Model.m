@@ -20,7 +20,7 @@ classdef Model < handle
             p = inputParser;
             addRequired(p, 'ODEModel');%, @(x) isa(x, 'csl.odetestproblems.Problem'));
             addRequired(p, 'Solver', @(x) nargin(x) == 3);
-            addParameter(p, 'SynthError', csl.datools.error.Error);
+            addParameter(p, 'SynthError', datools.error.Error);
             parse(p, varargin{:});
             
             s = p.Results;
