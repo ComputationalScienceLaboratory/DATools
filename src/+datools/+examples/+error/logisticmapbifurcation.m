@@ -7,8 +7,8 @@ rs = linspace(3, 4, nr);
 xs = zeros(nr, addpoints);
 ys = zeros(nr, addpoints);
 
-
 for mui = 1:nr
+    
     r = rs(mui);
     
     tenterror = datools.error.Logistic('R', r, 'Scale', 1);

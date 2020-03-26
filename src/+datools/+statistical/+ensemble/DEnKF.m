@@ -1,5 +1,4 @@
-classdef EnKF < datools.statistical.ensemble.EnF
-    
+classdef DEnKF < datools.statistical.ensemble.EnF
     
     methods
         
@@ -22,7 +21,6 @@ classdef EnKF < datools.statistical.ensemble.EnF
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
             
-            
             HAf = Hxf - repmat(Hxfm, 1, ensN);
             
             % tapering
@@ -40,11 +38,13 @@ classdef EnKF < datools.statistical.ensemble.EnF
             HPfHt = HrhoHt.*((1/(ensN - 1))*(HAf*(HAf.')));
             
             S = HPfHt + R;
-            dS = decomposition(S, 'chol');
-            d = y - Hxfm;
             
-            xam = xfm + PfHt*(dS\d);
-            Aa = Af + PfHt*(dS\(sqrtm(R)*randn(size(HAf)) - HAf));
+            dS = decomposition(S, 'chol');
+            
+            Aa = Af - 0.5*(PfHt*(dS\HAf));
+            
+            d = y - Hxfm;
+            xam = xfm + (PfHt*(dS\d));
             
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
             obj.Model.update(0, obj.BestEstimate);

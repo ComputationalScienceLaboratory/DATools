@@ -9,11 +9,12 @@ Deltat =  0.05;
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
 
-natureODE = otp.lorenz63.presets.Canonical;
+natureODE = otp.qg.presets.Canonical('Size', 'medium');
 nature0 = randn(natureODE.NumVars, 1);
+% natureODE.Y0 = otp.qg.presets.PopovMouIliescuSandu.relaxprolong(mic.Y0, 'medium');
 natureODE.TimeSpan = [0, Deltat];
 
-modelODE = otp.lorenz63.presets.Canonical;
+modelODE = otp.qg.presets.Canonical('Size', 'medium');
 modelODE.TimeSpan = [0, Deltat];
 
 [tt, yy] = ode45(natureODE.Rhs.F, [0 10], nature0);
@@ -24,8 +25,8 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
 naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(natureODE.NumVars));
 
-%observeindicies = 1:natureODE.NumVars;
-observeindicies = 1:1:natureODE.NumVars;
+observeindicies = 1:natureODE.NumVars;
+% observeindicies = 4:4:natureODE.NumVars;
 
 nobsvars = numel(observeindicies);
 
@@ -44,7 +45,7 @@ modelerror = datools.error.Error;
 ensembleGenerator = @(x) randn(natureODE.NumVars, x);
 
 ensNs = 5:5:50;
-infs = 1.01:.01:1.05;
+infs = 1.05:.05:1.4;
 
 rmses = inf*ones(numel(ensNs), numel(infs));
 
@@ -80,16 +81,16 @@ for runn = runsleft.'
         inflation = inflationAll;
         
         % No localization
-%         r = 5;
-%         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
+        r = 4;
+        d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
         localization = [];
         
-        %localization= @(t, y, H) datools.tapering.gc(t, y, r, d, H);
+        localization= @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         
         %localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, r, d, Hi, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
         
-        enkf = datools.statistical.ensemble.ETPF(model, ...
+        enkf = datools.statistical.ensemble.EnKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -98,7 +99,7 @@ for runn = runsleft.'
             'Localization', localization, ...
             'Parallel', false);
         
-        enkf.setMean(natureODE.Y0);
+        enkf.setMean(nature0);
         enkf.scaleAnomalies(1/10);
         
         spinup = 100;

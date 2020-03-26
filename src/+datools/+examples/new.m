@@ -1,4 +1,3 @@
-
 clear;
 close all;
 figure;
@@ -6,58 +5,66 @@ drawnow;
 
 Deltat =  0.05;
 
+
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
 
-natureODE = otp.lorenz63.presets.Canonical;
-nature0 = randn(natureODE.NumVars, 1);
-natureODE.TimeSpan = [0, Deltat];
 
-modelODE = otp.lorenz63.presets.Canonical;
-modelODE.TimeSpan = [0, Deltat];
+
+natureODE = otp.lorenz63.presets.Canonical;
+
+nvrs = natureODE.NumVars;
+
+nature0 = randn(nvrs, 1);
 
 [tt, yy] = ode45(natureODE.Rhs.F, [0 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
+modelODE = otp.lorenz63.presets.Canonical;
+
+
 model  = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
-naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(natureODE.NumVars));
+naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
 
-%observeindicies = 1:natureODE.NumVars;
-observeindicies = 1:1:natureODE.NumVars;
+
+observeindicies = 1:nvrs;
 
 nobsvars = numel(observeindicies);
 
 R = (1/1)*speye(nobsvars);
 
 obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
-%obserrormodel = datools.error.Tent;
 observation = datools.observation.Indexed(model.NumVars, ...
     'ErrorModel', obserrormodel, ...
     'Indicies', observeindicies);
 
+%% Do the rest
 
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
 
-ensembleGenerator = @(x) randn(natureODE.NumVars, x);
+
+
+ensembleGenerator = @(x) randn(nvrs, x);
 
 ensNs = 5:5:50;
-infs = 1.01:.01:1.05;
+infs = 1.05:.05:1.4;
 
 rmses = inf*ones(numel(ensNs), numel(infs));
+
 
 maxallowerr = 2;
 
 mm = min(rmses(:));
-
 if  mm >= maxallowerr
     mm = 0;
 end
 
 imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-axis square; title('ETKF'); colormap('hot');
+axis square; title('EnKF'); colormap('pink');
 xlabel('Ensemble Size'); ylabel('Inflation');
 
 runsleft = find(rmses == inf);
@@ -80,28 +87,21 @@ for runn = runsleft.'
         inflation = inflationAll;
         
         % No localization
-%         r = 5;
-%         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
-        localization = [];
+        localization= [];
         
-        %localization= @(t, y, H) datools.tapering.gc(t, y, r, d, H);
+        %fprintf('1\n');
         
-        %localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, r, d, Hi, k);
-        %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
-        
-        enkf = datools.statistical.ensemble.ETPF(model, ...
+        enkf = datools.statistical.ensemble.ETKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
             'Localization', localization, ...
-            'Parallel', false);
+            'Parallel', false, ...
+            'RIPIterations', 0);
         
-        enkf.setMean(natureODE.Y0);
-        enkf.scaleAnomalies(1/10);
-        
-        spinup = 100;
+        spinup = 200;
         times = 11*spinup;
         
         mses = zeros(times - spinup, 1);
@@ -113,6 +113,7 @@ for runn = runsleft.'
         do_enkf = true;
         
         for i = 1:times
+            %fprintf('%d|', i);
             % forecast
             
             nature.evolve();
@@ -128,13 +129,13 @@ for runn = runsleft.'
             
             % analysis
             
-            % try
-            if do_enkf
-                enkf.analysis(R, y);
+            try
+                if do_enkf
+                    enkf.analysis(R, y);
+                end
+            catch
+                do_enkf = false;
             end
-            %catch
-            %    do_enkf = false;
-            %end
             
             xa = enkf.BestEstimate;
             
@@ -167,6 +168,7 @@ for runn = runsleft.'
             sE(sample) = rmse;
         end
         
+        %fprintf('\n');
     end
     
     resE = mean(sE);
@@ -175,16 +177,16 @@ for runn = runsleft.'
         resE = 1000;
     end
     
+    
     rmses(ensNi, infi) = resE;
     
     mm = min(rmses(:));
-    
     if  mm >= maxallowerr
         mm = 0;
     end
     
     imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-    axis square; title('EnKF'); colormap('hot');
+    axis square; title('EnKF'); colormap('pink');
     xlabel('Ensemble Size'); ylabel('Inflation');
     drawnow;
 end
