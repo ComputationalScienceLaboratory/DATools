@@ -98,8 +98,8 @@ classdef FETPF < datools.statistical.ensemble.EnF
             
             xdist = xdist(:, 1:ensN);
             
-            w(1:ensN) = w(1:ensN)*(1 - gamma)/(ensN - 1);
-            w((ensN + 1):end) = w((ensN + 1):end)*gamma/(M - 1);
+            w(1:ensN) = w(1:ensN)*(1 - gamma)/(ensN);
+            w((ensN + 1):end) = w((ensN + 1):end)*gamma/(M);
             
             w = w/sum(w);
             
