@@ -1,4 +1,4 @@
-classdef Gaussian < datools.error.Error
+classdef Laplace < datools.error.Error
     
     properties
         CovarianceSqrt
@@ -7,7 +7,7 @@ classdef Gaussian < datools.error.Error
     
     methods
         
-        function obj = Gaussian(varargin)
+        function obj = Laplace(varargin)
             p = inputParser;
             addOptional(p, 'CovarianceSqrt', 1);
             addOptional(p, 'Bias', 0);
@@ -20,8 +20,10 @@ classdef Gaussian < datools.error.Error
         end
         
         function xp = adderr(obj, ~, x)
-            A = obj.CovarianceSqrt*randn(size(x, 1), size(x, 2));
-            xp = x + A + obj.Bias;
+            X = obj.CovarianceSqrt*randn(size(x, 1), size(x, 2));
+            Z = exprnd(1, 1, size(x, 2));
+            Y = sqrt(Z).*X;
+            xp = x + Y + obj.Bias;
         end
         
     end
