@@ -75,7 +75,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             laplace = obj.Laplace;
             if laplace
                 Z = exprnd(1, 1, M);
-                Asynth = Z.*Asynth;
+                Asynth = sqrt(Z).*Asynth;
             end
             
             Asynth = Asynth - mean(Asynth, 2);
