@@ -42,56 +42,11 @@ classdef ETPF2 < datools.statistical.ensemble.EnF
             Bric = Tx - w*ones(1, ensN);
             Aric = ensN*(W - w*w.') - Bric*Bric.';
             
-            
-            f = @(D) D*D + Bric*D + D*Bric.' - Aric;
-            
-            D0 = 1e-6*randn(ensN - 1);
-            D0 = (D0 + D0.')/2;
-            D0 = [D0, -sum(D0, 2); -sum(D0), -sum(-sum(D0))];
-            it = 1;
-            maxit = 1e3;
-            fD0 = f(D0);
-            fnorm = norm(fD0(:));
-            
-            while fnorm > 1e-12 && it < maxit
-                k = sylvester(D0 + Bric, D0 + Bric.', fD0);
-                if isnan(norm(k))
-                    break;
-                end
-                alpha = 1;
-                fnormnew = inf;
-                while fnormnew > fnorm
-                    
-                    
-                    
-                    
-                    D0new = D0 - alpha*k;
-                    D0new = (D0new + D0new.')/2;
-                    fD0new = f(D0new);
-                    fnormnew = norm(fD0new(:));
-                    alpha = alpha/2;
-                    if alpha == 0
-                        break;
-                    end
-                end
-                if alpha == 0
-                    break;
-                end
-                D0 = D0new;
-                fD0 = fD0new;
-                fnorm = fnormnew;
-                
-                it = it + 1;
-            end
-            
-            D = D0;
-            
-            
-            %rs = @(D) reshape(D, ensN, ensN);
-            %urs = @(D) reshape(D, ensN*ensN, 1);
-            %f = @(t, D) urs(-Bric * rs(D) - rs(D)*(Bric.') + Aric - rs(D)*rs(D));
-            %D = zeros(ensN, ensN);
-            %D = rs(dp(f, D(:)));
+            rs = @(D) reshape(D, ensN, ensN);
+            urs = @(D) reshape(D, ensN*ensN, 1);
+            f = @(t, D) urs(-Bric * rs(D) - rs(D)*(Bric.') + Aric - rs(D)*rs(D));
+            D = zeros(ensN, ensN);
+            D = rs(dp(f, D(:)));
             
             
             P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
@@ -109,11 +64,13 @@ end
 
 function y = dp(f, y0)
 
-h = 0.001;
+n = sqrt(numel(y0));
+
+h = 0.1;
 y = y0;
 
-abstol = 1e-13;
-reltol = 1e-13;
+abstol = 1e-6;
+reltol = 1e-6;
 
 ks = zeros([numel(y0), 7]);
 
@@ -154,7 +111,8 @@ while true
         hnew = h*min(facmax, max(facmin, fac*(1/err)^(1/(orderE + 1))));
     else
                
-        if norm(f(0, ynew)) < 1e-9 || t > 1000
+        % condition used by Acevedo, de Wiljes and Reich.
+        if norm(reshape(ynew, n, n) - reshape(y, n, n), 'inf') < 1e-3 || t > 1000
             break;
         end
         
@@ -173,7 +131,6 @@ while true
     
     
 end
-
 
 end
 
