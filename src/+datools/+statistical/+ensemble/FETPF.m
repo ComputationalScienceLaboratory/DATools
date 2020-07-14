@@ -25,7 +25,15 @@ classdef FETPF < datools.statistical.ensemble.EnF
             obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
             
             obj.B = s.B;
-            obj.Bsqrt = sqrtm(s.B);
+            if iscell(obj.B)
+                Bs = cell(numel(obj.B), 1);
+                for i = 1:numel(obj.B)
+                    Bs{i} = sqrtm(obj.B{i});
+                end
+                obj.Bsqrt = Bs;
+            else
+                obj.Bsqrt = sqrtm(s.B);
+            end
             obj.SurrogateEnsN = s.SurrogateEnsembleSize;
             obj.Laplace = s.Laplace;
       
@@ -54,19 +62,52 @@ classdef FETPF < datools.statistical.ensemble.EnF
             xfm = mean(xf, 2);
             Af = xf - xfm;
             
-            Covsqrt = (1/sqrt(ensN - 1)*Af);           
-            Bsqrtf = obj.Bsqrt;
-     
-            s = svd(Bsqrtf\Covsqrt);
-            trC = sum(s.^2);
-            tr2C = trC*trC;
-            trC2 = sum(s.^4);
-            
             n = size(xf, 1);
             
+            Covsqrt = (1/sqrt(ensN - 1)*Af);           
+            Bsqrtf_all = obj.Bsqrt;
             
             NN = ensN - 1;
-            gamma = min(1, ((NN - 2)/NN * trC2 + tr2C)/((NN + 2)*(trC2 - tr2C/n)));
+            
+            if iscell(Bsqrtf_all)
+                
+                Bi = 0;
+                Uhopt = inf;
+                
+                for i = 1:numel(Bsqrtf_all)
+                    Bsqrtfi = Bsqrtf_all{i};
+                    s = svd(Bsqrtfi\Covsqrt);
+                    trC = sum(s.^2);
+                    tr2C = trC*trC;
+                    trC2 = sum(s.^4);
+                    
+                    % calculate sphericity
+                    Uh = (n*trC2/tr2C - 1)/(n - 1);
+                    
+                    if Uh < Uhopt
+                        Uhopt = Uh;
+                        Bi = i;
+                    end
+                    
+                end    
+                Bsqrtf = Bsqrtf_all{Bi};
+ 
+            else
+                Bsqrtf = Bsqrtf_all;
+                s = svd(Bsqrtf\Covsqrt);
+                trC = sum(s.^2);
+                tr2C = trC*trC;
+                trC2 = sum(s.^4);
+                
+                % calculate sphericity
+                Uhopt = (n*trC2/tr2C - 1)/(n - 1);
+            end
+
+            gamma = min((NN - 2)/(NN*(NN + 2)) + ((n + 1)*NN - 2)/(Uhopt*NN*(NN + 2)*(n - 1)), 1);
+            
+            if M == 0
+                gamma = 0;
+            end
             mu = trC/n;
             
             %mu =  sum(s1.^2)/sum(s2.^2);
