@@ -22,7 +22,6 @@ classdef EnKF < datools.statistical.ensemble.EnF
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
             
-            
             HAf = Hxf - repmat(Hxfm, 1, ensN);
             
             % tapering

@@ -36,16 +36,17 @@ classdef FETPF < datools.statistical.ensemble.EnF
             end
             obj.SurrogateEnsN = s.SurrogateEnsembleSize;
             obj.Laplace = s.Laplace;
-      
+            
         end
     end
     
     methods
         
         function analysis(obj, R, y)
-
-            % abuse 
+            
             inflation = obj.Inflation;
+            tau = obj.Rejuvenation;
+            
             M = obj.SurrogateEnsN;
             
             tc = obj.Model.TimeSpan(1);
@@ -56,7 +57,6 @@ classdef FETPF < datools.statistical.ensemble.EnF
             AeqT = [kron(speye(ensN), ones(1, ensN + M)); kron(ones(ensN, 1), speye(ensN + M)).'];
             lbT = zeros((ensN + M)*ensN, 1);
             optsT = optimoptions('linprog', 'Display', 'off');
-           
             
             
             xfm = mean(xf, 2);
@@ -64,7 +64,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             
             n = size(xf, 1);
             
-            Covsqrt = (1/sqrt(ensN - 1)*Af);           
+            Covsqrt = (1/sqrt(ensN - 1)*Af);
             Bsqrtf_all = obj.Bsqrt;
             
             NN = ensN - 1;
@@ -89,9 +89,9 @@ classdef FETPF < datools.statistical.ensemble.EnF
                         Bi = i;
                     end
                     
-                end    
+                end
                 Bsqrtf = Bsqrtf_all{Bi};
- 
+                
             else
                 Bsqrtf = Bsqrtf_all;
                 s = svd(Bsqrtf\Covsqrt);
@@ -102,7 +102,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
                 % calculate sphericity
                 Uhopt = (n*trC2/tr2C - 1)/(n - 1);
             end
-
+            
             gamma = min((NN - 2)/(NN*(NN + 2)) + ((n + 1)*NN - 2)/(Uhopt*NN*(NN + 2)*(n - 1)), 1);
             
             if M == 0
@@ -150,6 +150,10 @@ classdef FETPF < datools.statistical.ensemble.EnF
             Tx = ensN*reshape(Tx, ensN + M, ensN);
             
             xa = chiF*(Tx);
+            
+            % Kinda sketchy
+            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
+            xa = xa + xf*P;
             
             obj.Ensemble = xa;
             obj.Model.update(0, obj.BestEstimate);

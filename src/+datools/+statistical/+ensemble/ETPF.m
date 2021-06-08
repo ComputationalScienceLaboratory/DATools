@@ -4,8 +4,7 @@ classdef ETPF < datools.statistical.ensemble.EnF
         
         function analysis(obj, R, y)
 
-            % abuse 
-            tau = obj.Inflation;
+            tau = obj.Rejuvenation;
             
             tc = obj.Model.TimeSpan(1);
             
