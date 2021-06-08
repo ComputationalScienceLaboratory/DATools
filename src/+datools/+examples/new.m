@@ -46,14 +46,14 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(x) randn(nvrs, x);
 
-ensN = 50;
+ensN = 1000;
 infl = 1.05;
 rej = 0.1;
 
 % No localization
 localization = [];
 
-meth = datools.statistical.ensemble.ETPF2(model, ...
+meth = datools.statistical.ensemble.SIR(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
@@ -64,7 +64,7 @@ meth = datools.statistical.ensemble.ETPF2(model, ...
     'Parallel', false, ...
     'RIPIterations', 0);
 
-spinup = 200;
+spinup = 20;
 times = 11*spinup;
 
 do_enkf = true;

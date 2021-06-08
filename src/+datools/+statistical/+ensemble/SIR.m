@@ -4,8 +4,7 @@ classdef SIR < datools.statistical.ensemble.EnF
         
         function analysis(obj, R, y)
             
-            % abuse
-            tau = obj.Inflation;
+            tau = obj.Rejuvenation;
             
             tc = obj.Model.TimeSpan(1);
             
@@ -16,8 +15,8 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             t0 = Hxf - y;
-            lik = exp(-0.5*sum(t0.*(R\t0)));
-            w = lik/sum(lik);
+            w = exp(-0.5*sum(t0.*(R\t0), 1));
+            w = w/sum(w);
             
             what = cumsum(w);
             a = rand(1, ensN);
