@@ -72,8 +72,6 @@ do_enkf = true;
 sse = 0;
 
 for i = 1:times
-    %fprintf('%d|', i);
-    % forecast
     
     nature.evolve();
     
@@ -87,7 +85,6 @@ for i = 1:times
     y = meth.Observation.observeWithError(model.TimeSpan(1), xt);
     
     % analysis
-    
     try
         if do_enkf
             meth.analysis(R, y);
