@@ -9,11 +9,11 @@ Deltat =  0.05;
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
 
-natureODE = otp.lorenz63.presets.Canonical;
+natureODE = otp.lorenz96.presets.Canonical;
 nature0 = randn(natureODE.NumVars, 1);
 natureODE.TimeSpan = [0, Deltat];
 
-modelODE = otp.lorenz63.presets.Canonical;
+modelODE = otp.lorenz96.presets.Canonical;
 modelODE.TimeSpan = [0, Deltat];
 
 [tt, yy] = ode45(natureODE.Rhs.F, [0 10], nature0);
@@ -41,7 +41,7 @@ observation = datools.observation.Indexed(model.NumVars, ...
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
 
-ensembleGenerator = @(x) randn(natureODE.NumVars, x);
+ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
 ensNs = 5:5:50;
 infs = 1.01:.01:1.05;
@@ -80,16 +80,16 @@ for runn = runsleft.'
         inflation = inflationAll;
         
         % No localization
-%         r = 5;
-%         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
-        localization = [];
+        r = 5;
+        d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
+        %localization = [];
         
-        %localization= @(t, y, H) datools.tapering.gc(t, y, r, d, H);
+        %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         
-        %localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, r, d, Hi, k);
+        localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
         
-        enkf = datools.statistical.ensemble.ETPF(model, ...
+        enkf = datools.statistical.ensemble.LETKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -178,13 +178,14 @@ for runn = runsleft.'
     rmses(ensNi, infi) = resE;
     
     mm = min(rmses(:));
+    mm = 0;
     
     if  mm >= maxallowerr
         mm = 0;
     end
     
     imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-    axis square; title('EnKF'); colormap('hot');
+    axis square; title('EnKF'); colormap('pink');
     xlabel('Ensemble Size'); ylabel('Inflation');
     drawnow;
 end
