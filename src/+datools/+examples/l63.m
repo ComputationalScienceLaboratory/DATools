@@ -28,7 +28,8 @@ modelODE.TimeSpan = [0, Deltat];
 model  = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
-naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
+% naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
+naturetomodel = datools.observation.Indexed(numel(nature0), 'Indices', 1:nvrs);
 
 observeindicies = 1;
 
@@ -39,7 +40,7 @@ R = (8/1)*speye(nobsvars);
 obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 observation = datools.observation.Indexed(model.NumVars, ...
     'ErrorModel', obserrormodel, ...
-    'Indicies', observeindicies);
+    'Indices', observeindicies);
 
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
@@ -48,7 +49,7 @@ ensembleGenerator = @(x) randn(nvrs, x);
 
 ensN = 1000;
 infl = 1.05;
-rej = 0.1;
+rej = 0.01;
 
 % No localization
 localization = [];
@@ -85,13 +86,13 @@ for i = 1:times
     y = meth.Observation.observeWithError(model.TimeSpan(1), xt);
     
     % analysis
-    try
+    %try
         if do_enkf
             meth.analysis(R, y);
         end
-    catch
-        do_enkf = false;
-    end
+    %catch
+    %    do_enkf = false;
+    %end
     
     xa = meth.BestEstimate;
     

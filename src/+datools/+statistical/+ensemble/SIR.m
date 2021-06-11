@@ -8,14 +8,16 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             tc = obj.Model.TimeSpan(1);
             
+            dR = decomposition(R, 'chol');
+            
             xf = obj.Ensemble;
-            xa = 0*xf;
+            xa = xf;
             
             ensN = obj.NumEnsemble;            
             
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(R\t0), 1));
+            w = exp(-0.5*sum(t0.*(dR\t0), 1));
             w = w/sum(w);
             
             what = cumsum(w);
