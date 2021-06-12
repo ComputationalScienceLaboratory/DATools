@@ -48,7 +48,7 @@ modelerror = datools.error.Error;
 ensembleGenerator = @(x) randn(nvrs, x);
 
 ensN = 1000;
-infl = 1.05;
+infl = 1.01;
 rej = 0.01;
 
 % No localization

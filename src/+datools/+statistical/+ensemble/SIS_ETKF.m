@@ -16,11 +16,11 @@ classdef SIS_ETKF < datools.statistical.ensemble.EnF
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation*Af./sqrt(ensN - 1);
-            xf = repmat(xfm, 1, ensN) + Af;
+            xf = repmat(xfm, 1, ensN) + Af*sqrt(ensN - 1);
             
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
-            HAf = Hxf - repmat(Hxfm, 1, ensN);
+            HAf = (Hxf - repmat(Hxfm, 1, ensN))/sqrt(ensN - 1);
             
             temp = ((HAf*HAf.') + R)\HAf;
             T = sqrtm(eye(ensN) - (HAf.'*temp));
@@ -30,7 +30,7 @@ classdef SIS_ETKF < datools.statistical.ensemble.EnF
             
             modelsize = numel(xam);
             
-            
+                       
             if modelsize > ensN
                 xa = xam + Aa*randn(ensN, ensN);
             else
@@ -44,6 +44,7 @@ classdef SIS_ETKF < datools.statistical.ensemble.EnF
             lik = exp(-0.5*sum(t0.*(R\t0), 1));
             
             t0 = xa - xf;
+            
             prop = exp(-0.5*sum(t0.*(Pa\t0), 1));
             
             w = w.*lik./prop;
