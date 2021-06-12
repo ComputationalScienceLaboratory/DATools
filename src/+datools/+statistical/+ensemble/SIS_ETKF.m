@@ -46,7 +46,7 @@ classdef SIS_ETKF < datools.statistical.ensemble.EnF
             t0 = xa - xf;
             prop = exp(-0.5*sum(t0.*(Pa\t0), 1));
             
-            w = w.*lik.*prop;
+            w = w.*lik./prop;
             
             % If model error is present, need to calculate the
             % probabilities of evolution. otherwise, it is assumed 1.  
