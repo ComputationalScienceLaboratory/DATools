@@ -47,14 +47,14 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(x) randn(nvrs, x);
 
-ensN = 1000;
+ensN = 100;
 infl = 1.01;
-rej = 0.01;
+rej = 0.1;
 
 % No localization
 localization = [];
 
-meth = datools.statistical.ensemble.SIS_ETKF(model, ...
+meth = datools.statistical.ensemble.SIS_EnKF_res(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
@@ -65,8 +65,10 @@ meth = datools.statistical.ensemble.SIS_ETKF(model, ...
     'Parallel', false, ...
     'RIPIterations', 0);
 
-spinup = 20;
-times = 11*spinup;
+meth.Ensemble = nature.State + meth.Ensemble;
+
+spinup = 0;
+times = 1000;
 
 do_enkf = true;
 
