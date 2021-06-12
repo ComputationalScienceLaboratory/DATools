@@ -31,7 +31,7 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 % naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
 naturetomodel = datools.observation.Indexed(numel(nature0), 'Indices', 1:nvrs);
 
-observeindicies = 1;
+observeindicies = 1:3;
 
 nobsvars = numel(observeindicies);
 
@@ -47,7 +47,7 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(x) randn(nvrs, x);
 
-ensN = 100;
+ensN = 200;
 infl = 1.01;
 rej = 0.1;
 
