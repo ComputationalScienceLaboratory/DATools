@@ -36,14 +36,14 @@ classdef SIS_EnKF_res < datools.statistical.ensemble.EnF
             S = HPfHt + R;
             dS = decomposition(S, 'chol');
             
-            inn = y - Hxfm;
+            d = y - Hxfm;
             
-            u = xf + PfHt*(dS\inn);
-            xa = u + PfHt*(dS\(sqrtm(R)*randn(size(y, 1), ensN)));
+            u = xf + PfHt*(dS\d);
+            t0 = PfHt*(dS\(sqrtm(R)*randn(size(y, 1), ensN)));
+            xa = t0 + u;
             
-            t0 = xa - u;
             V = (1/(ensN - 1))*(t0*t0.');
-            % To deal with low rank V
+            % To deal with low eigenvalues V
             V = V + trace(V)/3*(eye(3));
             prop = exp(-0.5*sum(t0.*(V\t0), 1));
             
