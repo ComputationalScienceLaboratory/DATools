@@ -5,7 +5,9 @@ classdef EnF < handle
         ModelError % type err
         Observation
         Ensemble
+        Weights
         Inflation
+        Rejuvenation
         Localization
         Parallel
     end
@@ -31,6 +33,7 @@ classdef EnF < handle
             addParameter(p, 'ModelError', datools.error.Error);
             addParameter(p, 'NumEnsemble', 1);
             addParameter(p, 'Inflation', 1);
+            addParameter(p, 'Rejuvenation', 0);
             addParameter(p, 'Localization', []);
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
@@ -41,6 +44,7 @@ classdef EnF < handle
             obj.Model        = s.Model;
             obj.ModelError   = s.ModelError;
             obj.Inflation    = s.Inflation;
+            obj.Rejuvenation = s.Rejuvenation;
             obj.Localization = s.Localization;
             obj.Parallel     = s.Parallel;
             ensN = s.NumEnsemble;
@@ -56,6 +60,7 @@ classdef EnF < handle
             
             obj.Ensemble = s.EnsembleGenerator(ensN);
             obj.Observation = s.Observation;
+            obj.Weights = (1/ensN)*ones(1, ensN);
             
         end
         
@@ -110,7 +115,7 @@ classdef EnF < handle
         
         function x = get.BestEstimate(obj)
             
-            x = mean(obj.Ensemble, 2);
+            x = obj.Ensemble*obj.Weights.';
             
         end
         

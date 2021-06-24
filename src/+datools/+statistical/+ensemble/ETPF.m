@@ -4,8 +4,7 @@ classdef ETPF < datools.statistical.ensemble.EnF
         
         function analysis(obj, R, y)
 
-            % abuse 
-            tau = obj.Inflation;
+            tau = obj.Rejuvenation;
             
             tc = obj.Model.TimeSpan(1);
             
@@ -19,16 +18,14 @@ classdef ETPF < datools.statistical.ensemble.EnF
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             
             xdist = zeros(ensN, ensN);
-            w = zeros(ensN, 1);
             
             for i = 1:ensN
                 xtemp = xf - repmat(xf(:, i), 1, ensN);
                 xdist(i, :) = vecnorm(xtemp).^2;
-                
-                inn = y - Hxf(:, i);
-                w(i) = exp(-0.5*inn'*(R\inn));
             end
             
+            t0 = Hxf - y;
+            w = exp(-0.5*sum(t0.*(R\t0), 1));
             w = w/sum(w);
             
             beqT = [ones(ensN, 1)/ensN; w];
