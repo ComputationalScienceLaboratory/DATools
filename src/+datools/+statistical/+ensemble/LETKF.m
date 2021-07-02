@@ -20,7 +20,7 @@ classdef LETKF < datools.statistical.ensemble.EnF
             Hxfm = mean(Hxf, 2);
             HAf = Hxf - repmat(Hxfm, 1, ensN);
             
-            Hi = obj.Observation.Indicies;
+            Hi = obj.Observation.Indices;
             
             Aa = zeros(size(Af));
             xam = zeros(size(xfm));

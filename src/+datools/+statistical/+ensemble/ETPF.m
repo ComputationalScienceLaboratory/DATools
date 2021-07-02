@@ -25,7 +25,7 @@ classdef ETPF < datools.statistical.ensemble.EnF
             end
             
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(R\t0), 1));
+            w = exp(-0.5*sum(t0.*(R\t0), 1)).';
             w = w/sum(w);
             
             beqT = [ones(ensN, 1)/ensN; w];
