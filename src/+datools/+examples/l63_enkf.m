@@ -2,11 +2,14 @@ clear; close all;
 figure;
 drawnow;
 
+% time steps
 Delta_t = 0.12;
 
+% Time Stepping Methods
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 50);
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 50);
 
+% ODE 
 natureODE = otp.lorenz63.presets.Canonical;
 nature0 = randn(natureODE.NumVars, 1);
 natureODE.TimeSpan = [0, Delta_t];
@@ -14,6 +17,7 @@ natureODE.TimeSpan = [0, Delta_t];
 modelODE = otp.lorenz63.presets.Canonical;
 modelODE.TimeSpan = [0, Delta_t];
 
+% Propogate
 [tt, yy] = ode45(natureODE.Rhs.F, [0 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
