@@ -41,11 +41,13 @@ classdef Hybrid < datools.statistical.ensemble.EnF
             
             for i = 1:numel(obj.Filters)
                 alpha = alphas(i);
-                obj.Filters{i}.Weights = obj.Weights;
-                obj.Filters{i}.Ensemble = X;
-                obj.Filters{i}.analysis(R/alpha, y);
-                obj.Weights = obj.Filters{i}.Weights;
-                X = obj.Filters{i}.Ensemble;
+                if alpha > 0
+                    obj.Filters{i}.Weights = obj.Weights;
+                    obj.Filters{i}.Ensemble = X;
+                    obj.Filters{i}.analysis(R/alpha, y);
+                    obj.Weights = obj.Filters{i}.Weights;
+                    X = obj.Filters{i}.Ensemble;
+                end
             end
             
             [n, ensN]  = size(X);
