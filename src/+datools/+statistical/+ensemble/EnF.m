@@ -60,7 +60,7 @@ classdef EnF < handle
             
             obj.Ensemble = s.EnsembleGenerator(ensN);
             obj.Observation = s.Observation;
-            obj.Weights = (1/ensN)*ones(1, ensN);
+            obj.Weights = ones(ensN, 1)/ensN;
             
         end
         
@@ -115,7 +115,7 @@ classdef EnF < handle
         
         function x = get.BestEstimate(obj)
             
-            x = obj.Ensemble*obj.Weights.';
+            x = obj.Ensemble*obj.Weights;
             
         end
         

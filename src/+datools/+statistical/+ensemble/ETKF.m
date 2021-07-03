@@ -30,6 +30,8 @@ classdef ETKF < datools.statistical.ensemble.EnF
             obj.Ensemble = xa;
             obj.Model.update(0, obj.BestEstimate);
             
+            obj.Weights = ones(ensN, 1)/ensN;
+            
         end
         
     end

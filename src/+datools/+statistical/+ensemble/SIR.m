@@ -17,7 +17,7 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(dR\t0), 1));
+            w = exp(-0.5*sum(t0.*(dR\t0), 1)).';
             w = w/sum(w);
             
             what = cumsum(w);
@@ -48,6 +48,8 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             obj.Ensemble = xa;
             obj.Model.update(0, obj.BestEstimate);
+            
+            obj.Weights = ones(ensN, 1)/ensN;
             
         end
         
