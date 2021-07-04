@@ -1,5 +1,35 @@
 classdef LETPF < datools.statistical.ensemble.EnF
     
+    properties 
+        LocalizationEnsembleDistance
+    end
+    
+    
+    methods
+        function obj = LETPF(varargin)
+            
+            p = inputParser;
+            p.KeepUnmatched = true;
+            
+            % this is recommended according to the Reich book
+            
+            addParameter(p, 'LocalizationEnsembleDistance', ...
+                @(~, ~, inds, k) ...
+                spdiags([zeros(k - 1, 1); 1; zeros(numel(inds) - k + 1, 1)], 1, numel(inds), numel(inds)));
+            
+            parse(p, varargin{2:end});
+            
+            s = p.Results;
+            
+            kept = p.Unmatched;
+            
+            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            
+            obj.LocalizationEnsembleDistance = s.LocalizationEnsembleDistance;
+            
+        end
+    end
+    
     methods
         
         function analysis(obj, R, y)
@@ -20,35 +50,44 @@ classdef LETPF < datools.statistical.ensemble.EnF
             
             xdist = zeros(ensN, ensN);
             
-            for i = 1:ensN
-                xtemp = xf - repmat(xf(:, i), 1, ensN);
-                xdist(i, :) = vecnorm(xtemp).^2;
-            end
             
             t0 = Hxf - y;
             
             xa = xf;
             
             invR = spdiags(1./diag(R), 0, size(R, 1), size(R, 2));
+            Hi = obj.Observation.Indices;
             
             for k = 1:n
-               
-
+                
                 if isempty(obj.Localization)
                     C = speye(size(invR));
                 else
-                    C = obj.Localization(tc, xfm, Hi, k);
+                    C = obj.Localization(tc, mean(xf, 2), Hi, k);
                 end
                 
-                w = exp(-0.5*sum(t0.*((C*invR)*t0), 1)).';
-                w = w/sum(w);
-                
+                if isempty(obj.LocalizationEnsembleDistance)
+                    rho = ones(n, 1);
+                else
+                    rho = obj.LocalizationEnsembleDistance(tc, mean(xf, 2), 1:n, k);
+                    rho = full(diag(rho));
+                end
+
+                for i = 1:ensN
+                    xtemp = xf - repmat(xf(:, i), 1, ensN);
+                    xdist(i, :) = sum(rho.*(xtemp.^2), 1);
+                end
+ 
+                % more efficient way of calculating weights
+                as = (-0.5*sum(t0.*((C*invR)*t0), 1)).';
+                m = max(as);
+                w = exp(as - (m + log(sum(exp(as - m)))));
+ 
                 beqT = [ones(ensN, 1)/ensN; w];
                 f = xdist(:);
                 Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
                 Tx = ensN*reshape(Tx, ensN, ensN);
-                
-               
+
                 xa(k, :) = xf(k, :)*Tx;
                 
             end
