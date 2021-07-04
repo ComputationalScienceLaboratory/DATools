@@ -17,8 +17,11 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(dR\t0), 1)).';
-            w = w/sum(w);
+            
+            % more efficient way of calculating weights
+            as = (-0.5*sum(t0.*(R\t0), 1)).';
+            m = max(as);
+            w = exp(as - (m + log(sum(exp(as - m)))));
             
             what = cumsum(w);
             a = rand(1, ensN);

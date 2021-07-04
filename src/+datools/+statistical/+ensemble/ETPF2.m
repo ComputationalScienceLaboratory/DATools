@@ -25,8 +25,11 @@ classdef ETPF2 < datools.statistical.ensemble.EnF
             end
             
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(R\t0), 1)).';
-            w = w/sum(w);
+            
+            % more efficient way of calculating weights
+            as = (-0.5*sum(t0.*(R\t0), 1)).';
+            m = max(as);
+            w = exp(as - (m + log(sum(exp(as - m)))));
             
             beqT = [ones(ensN, 1)/ensN; w];
             f = xdist(:);
