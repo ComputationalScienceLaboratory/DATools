@@ -47,15 +47,17 @@ classdef FETPF < datools.statistical.ensemble.EnF
             inflation = obj.Inflation;
             tau = obj.Rejuvenation;
             
-            M = obj.SurrogateEnsN;
+            ensM = obj.SurrogateEnsN;
             
             tc = obj.Model.TimeSpan(1);
             
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-            AeqT = [kron(speye(ensN), ones(1, ensN + M)); kron(ones(ensN, 1), speye(ensN + M)).'];
-            lbT = zeros((ensN + M)*ensN, 1);
+            dR = decomposition(R, 'chol');
+            
+            AeqT = [kron(speye(ensN), ones(1, ensN + ensM)); kron(ones(ensN, 1), speye(ensN + ensM)).'];
+            lbT = zeros((ensN + ensM)*ensN, 1);
             optsT = optimoptions('linprog', 'Display', 'off');
             
             
@@ -75,6 +77,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
                 Uhopt = inf;
                 
                 for i = 1:numel(Bsqrtf_all)
+                    
                     Bsqrtfi = Bsqrtf_all{i};
                     s = svd(Bsqrtfi\Covsqrt);
                     trC = sum(s.^2);
@@ -93,6 +96,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
                 Bsqrtf = Bsqrtf_all{Bi};
                 
             else
+                
                 Bsqrtf = Bsqrtf_all;
                 s = svd(Bsqrtf\Covsqrt);
                 trC = sum(s.^2);
@@ -101,21 +105,22 @@ classdef FETPF < datools.statistical.ensemble.EnF
                 
                 % calculate sphericity
                 Uhopt = (n*trC2/tr2C - 1)/(n - 1);
+                
             end
             
             gamma = min((NN - 2)/(NN*(NN + 2)) + ((n + 1)*NN - 2)/(Uhopt*NN*(NN + 2)*(n - 1)), 1);
             
-            if M == 0
+            if ensM == 0
                 gamma = 0;
             end
             mu = trC/n;
             
             %mu =  sum(s1.^2)/sum(s2.^2);
-            Asynth = sqrt(mu)*Bsqrtf*randn(n, M);
+            Asynth = sqrt(mu)*Bsqrtf*randn(n, ensM);
             
             laplace = obj.Laplace;
             if laplace
-                Z = exprnd(1, 1, M);
+                Z = exprnd(1, 1, ensM);
                 Asynth = sqrt(Z).*Asynth;
             end
             
@@ -127,31 +132,36 @@ classdef FETPF < datools.statistical.ensemble.EnF
             Hchif = obj.Observation.observeWithoutError(tc, chiF);
             
             xdist = zeros(size(chiF));
-            w = zeros(ensN + M, 1);
             
-            for i = 1:(ensN + M)
+            for i = 1:(ensN + ensM)
                 X_temp = chiF - chiF(:, i);
                 xdist(i, :) = vecnorm(X_temp, 2).^2;
-                inn = y - Hchif(:, i);
-                w(i) = exp(-0.5*inn'*(R\inn));
-                
             end
+            
+            t0 = Hchif - y;
+            
+            % more efficient way of calculating weights
+            as = (-0.5*sum(t0.*(dR\t0), 1)).';
+            m = max(as);
+            w = exp(as - (m + log(sum(exp(as - m)))));
             
             xdist = xdist(:, 1:ensN);
             
             w(1:ensN) = w(1:ensN)*(1 - gamma)/(ensN);
-            w((ensN + 1):end) = w((ensN + 1):end)*gamma/(M);
+            w((ensN + 1):end) = w((ensN + 1):end)*gamma/(ensM);
             
             w = w/sum(w);
             
             beqT = [ones(ensN, 1)/ensN; w];
             f = xdist(:);
             Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
-            Tx = ensN*reshape(Tx, ensN + M, ensN);
+            Tx = ensN*reshape(Tx, ensN + ensM, ensN);
             
             xa = chiF*(Tx);
             
-            % Kinda sketchy
+            % rejuvenation of this sort is not performed by default,
+            % however it is included in this algorithm purely for
+            % completeness
             P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
             xa = xa + xf*P;
             
