@@ -4,10 +4,11 @@ classdef ETPF < datools.statistical.ensemble.EnF
         
         function analysis(obj, R, y)
 
-            % abuse 
-            tau = obj.Inflation;
+            tau = obj.Rejuvenation;
             
             tc = obj.Model.TimeSpan(1);
+            
+            dR = decomposition(R, 'chol');
             
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -19,17 +20,18 @@ classdef ETPF < datools.statistical.ensemble.EnF
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             
             xdist = zeros(ensN, ensN);
-            w = zeros(ensN, 1);
             
             for i = 1:ensN
                 xtemp = xf - repmat(xf(:, i), 1, ensN);
                 xdist(i, :) = vecnorm(xtemp).^2;
-                
-                inn = y - Hxf(:, i);
-                w(i) = exp(-0.5*inn'*(R\inn));
             end
             
-            w = w/sum(w);
+            t0 = Hxf - y;
+            
+            % more efficient way of calculating weights
+            as = (-0.5*sum(t0.*(dR\t0), 1)).';
+            m = max(as);
+            w = exp(as - (m + log(sum(exp(as - m)))));
             
             beqT = [ones(ensN, 1)/ensN; w];
             f = xdist(:);
@@ -41,6 +43,8 @@ classdef ETPF < datools.statistical.ensemble.EnF
             
             obj.Ensemble = xa;
             obj.Model.update(0, obj.BestEstimate);
+            
+            obj.Weights = ones(ensN, 1)/ensN;
             
         end
         

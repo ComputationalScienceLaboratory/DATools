@@ -43,8 +43,9 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
-ensNs = 5:5:50;
+ensNs = 100:100:500;
 infs = 1.01:.01:1.05;
+infs = 0.1:0.1:0.7;
 
 rmses = inf*ones(numel(ensNs), numel(infs));
 
@@ -80,16 +81,18 @@ for runn = runsleft.'
         inflation = inflationAll;
         
         % No localization
-        r = 5;
-        d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
-        %localization = [];
+
+        %r = 3;
+        %d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
+        localization = [];
         
         %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         
-        localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
+
+        %localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
         
-        enkf = datools.statistical.ensemble.LETKF(model, ...
+        enkf = datools.statistical.ensemble.SIR(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
