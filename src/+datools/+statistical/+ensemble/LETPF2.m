@@ -104,14 +104,12 @@ classdef LETPF2 < datools.statistical.ensemble.EnF
                 
             end
             
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            
-            xa = xa + xf*P;
             
             obj.Ensemble = xa;
-            obj.Model.update(0, obj.BestEstimate);
-            
             obj.Weights = ones(ensN, 1)/ensN;
+            obj.rejuvenate(tau);
+            
+            obj.Model.update(0, obj.BestEstimate);
             
         end
         

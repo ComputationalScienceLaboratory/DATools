@@ -50,11 +50,12 @@ classdef ETPF2 < datools.statistical.ensemble.EnF
             D = zeros(ensN, ensN);
             D = rs(datools.utils.dpETPF2(f, D(:)));
             
-            
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            xa = xf*(Tx + D + P);
+            xa = xf*(Tx + D);
             
             obj.Ensemble = xa;
+            obj.Weights = ones(ensN, 1)/ensN;
+            obj.rejuvenate(tau);
+            
             obj.Model.update(0, obj.BestEstimate);
             
         end
