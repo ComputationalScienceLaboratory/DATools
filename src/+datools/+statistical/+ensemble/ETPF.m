@@ -8,6 +8,8 @@ classdef ETPF < datools.statistical.ensemble.EnF
             
             tc = obj.Model.TimeSpan(1);
             
+            dR = decomposition(R, 'chol');
+            
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
@@ -25,19 +27,26 @@ classdef ETPF < datools.statistical.ensemble.EnF
             end
             
             t0 = Hxf - y;
-            w = exp(-0.5*sum(t0.*(R\t0), 1));
-            w = w/sum(w);
+            
+            % more efficient way of calculating weights
+            as = (-0.5*sum(t0.*(dR\t0), 1)).';
+            m = max(as);
+            w = exp(as - (m + log(sum(exp(as - m)))));
             
             beqT = [ones(ensN, 1)/ensN; w];
             f = xdist(:);
             Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
             Tx = ensN*reshape(Tx, ensN, ensN);
             
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            xa = xf*(Tx + P);
+            xa = xf*Tx;
             
             obj.Ensemble = xa;
+            obj.Weights = ones(ensN, 1)/ensN;
+            obj.rejuvenate(tau);
+            
             obj.Model.update(0, obj.BestEstimate);
+            
+            
             
         end
         

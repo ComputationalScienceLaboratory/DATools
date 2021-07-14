@@ -60,7 +60,7 @@ classdef EnF < handle
             
             obj.Ensemble = s.EnsembleGenerator(ensN);
             obj.Observation = s.Observation;
-            obj.Weights = (1/ensN)*ones(1, ensN);
+            obj.Weights = ones(ensN, 1)/ensN;
             
         end
         
@@ -115,29 +115,51 @@ classdef EnF < handle
         
         function x = get.BestEstimate(obj)
             
-            x = obj.Ensemble*obj.Weights.';
+            x = obj.Ensemble*obj.Weights;
             
         end
         
         function setMean(obj, xam)
             
-            Xf  = obj.Ensemble;
-            ensN = size(Xf, 2);
-            xfm  = mean(Xf,  2);
-            Af  = (Xf  - repmat(xfm,  1, ensN));
-            Xf  = repmat(xam, 1, ensN) + Af;
-            obj.Ensemble= Xf;
+            X  = obj.Ensemble;
+            ensN = size(X, 2);
+            xm  = mean(X,  2);
+            A  = (X  - repmat(xm,  1, ensN));
+            X  = repmat(xam, 1, ensN) + A;
+            obj.Ensemble = X;
             
         end
         
         function scaleAnomalies(obj, scale)
             
-            Xf  = obj.Ensemble;
-            ensN = size(Xf, 2);
-            xfm  = mean(Xf, 2);
-            Af  = scale*(Xf - repmat(xfm, 1, ensN));
-            Xf  = repmat(xfm, 1, ensN) + Af;
-            obj.Ensemble = Xf;
+            X  = obj.Ensemble;
+            ensN = size(X, 2);
+            xm  = mean(X, 2);
+            A  = scale*(X - repmat(xm, 1, ensN));
+            X  = repmat(xm, 1, ensN) + A;
+            obj.Ensemble = X;
+            
+        end
+        
+        function rejuvenate(obj, tau)
+            
+            X = obj.Ensemble;
+            [n, ensN] = size(X);
+            
+            if n > ensN + 2
+                A = (X - mean(X, 2))/sqrt(ensN -1);
+                vs = sqrt(sum(A.^2, 2));
+                
+                Xi = sqrt(tau)*vs.*rand(n, ensN);
+                Xi = Xi - mean(Xi, 2);
+                
+                X = X + Xi;
+            else
+                P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
+                X = X + X*P;
+            end
+            
+            obj.Ensemble = X;
             
         end
         

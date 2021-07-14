@@ -1,20 +1,24 @@
-classdef FETPF < datools.statistical.ensemble.EnF
+classdef LFETPF < datools.statistical.ensemble.EnF
     
     properties
         B
         Bsqrt
         SurrogateEnsN
         Laplace
+        LocalizationEnsembleDistance
     end
     
     methods
-        function obj = FETPF(varargin)
+        function obj = LFETPF(varargin)
             
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'B', 1);
             addParameter(p, 'SurrogateEnsembleSize', 2);
             addParameter(p, 'Laplace', false);
+            addParameter(p, 'LocalizationEnsembleDistance', ...
+                @(~, ~, inds, k) ...
+                spdiags([zeros(k - 1, 1); 1; zeros(numel(inds) - k + 1, 1)], 1, numel(inds), numel(inds)));
             
             parse(p, varargin{2:end});
             
@@ -37,6 +41,8 @@ classdef FETPF < datools.statistical.ensemble.EnF
             obj.SurrogateEnsN = s.SurrogateEnsembleSize;
             obj.Laplace = s.Laplace;
             
+            obj.LocalizationEnsembleDistance = s.LocalizationEnsembleDistance;
+            
         end
     end
     
@@ -53,9 +59,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-            
-            dR = decomposition(R, 'chol');
-            
+                        
             AeqT = [kron(speye(ensN), ones(1, ensN + ensM)); kron(ones(ensN, 1), speye(ensN + ensM)).'];
             lbT = zeros((ensN + ensM)*ensN, 1);
             optsT = optimoptions('linprog', 'Display', 'off');
@@ -130,34 +134,56 @@ classdef FETPF < datools.statistical.ensemble.EnF
             chiF = xfm + Afrak;
             
             Hchif = obj.Observation.observeWithoutError(tc, chiF);
+
+            invR = spdiags(1./diag(R), 0, size(R, 1), size(R, 2));
+            Hi = obj.Observation.Indices;
             
-            xdist = zeros(size(chiF));
+            xa = xf;
             
-            for i = 1:(ensN + ensM)
-                X_temp = chiF - chiF(:, i);
-                xdist(i, :) = vecnorm(X_temp, 2).^2;
+            for k = 1:n
+                
+                if isempty(obj.Localization)
+                    C = speye(size(invR));
+                else
+                    C = obj.Localization(tc, mean(xf, 2), Hi, k);
+                end
+                
+                if isempty(obj.LocalizationEnsembleDistance)
+                    rho = ones(n, 1);
+                else
+                    rho = obj.LocalizationEnsembleDistance(tc, mean(chiF, 2), 1:n, k);
+                    rho = full(diag(rho));
+                end
+                
+                xdist = zeros(ensN + ensM, ensN + ensM);
+                
+                for i = 1:(ensN + ensM)
+                    xtemp = chiF - chiF(:, i);
+                    xdist(i, :) = sum(rho.*(xtemp.^2), 1);
+                end
+                
+                t0 = Hchif - y;
+                
+                % more efficient way of calculating weights
+                as = (-0.5*sum(t0.*((C*invR)*t0), 1)).';
+                m = max(as);
+                w = exp(as - (m + log(sum(exp(as - m)))));
+                
+                xdist = xdist(:, 1:ensN);
+                
+                w(1:ensN) = w(1:ensN)*(1 - gamma)/(ensN);
+                w((ensN + 1):end) = w((ensN + 1):end)*gamma/(ensM);
+                
+                w = w/sum(w);
+                
+                beqT = [ones(ensN, 1)/ensN; w];
+                f = xdist(:);
+                Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
+                Tx = ensN*reshape(Tx, ensN + ensM, ensN);
+                
+                xa(k, :) = chiF(k, :)*Tx;
+                
             end
-            
-            t0 = Hchif - y;
-            
-            % more efficient way of calculating weights
-            as = (-0.5*sum(t0.*(dR\t0), 1)).';
-            m = max(as);
-            w = exp(as - (m + log(sum(exp(as - m)))));
-            
-            xdist = xdist(:, 1:ensN);
-            
-            w(1:ensN) = w(1:ensN)*(1 - gamma)/(ensN);
-            w((ensN + 1):end) = w((ensN + 1):end)*gamma/(ensM);
-            
-            w = w/sum(w);
-            
-            beqT = [ones(ensN, 1)/ensN; w];
-            f = xdist(:);
-            Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
-            Tx = ensN*reshape(Tx, ensN + ensM, ensN);
-            
-            xa = chiF*(Tx);
             
             obj.Ensemble = xa;
             obj.Weights = ones(ensN, 1)/ensN;
