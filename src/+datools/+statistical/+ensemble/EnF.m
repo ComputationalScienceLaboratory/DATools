@@ -10,6 +10,7 @@ classdef EnF < handle
         Rejuvenation
         Localization
         Parallel
+        ResamplingThreshold
     end
     
     properties (Dependent)
@@ -37,6 +38,7 @@ classdef EnF < handle
             addParameter(p, 'Localization', []);
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
+            addParameter(p, 'ResamplingThreshold', 0.5);
             parse(p, varargin{:});
             
             s = p.Results;
@@ -47,6 +49,7 @@ classdef EnF < handle
             obj.Rejuvenation = s.Rejuvenation;
             obj.Localization = s.Localization;
             obj.Parallel     = s.Parallel;
+            obj.ResamplingThreshold = s.ResamplingThreshold;
             ensN = s.NumEnsemble;
             
             kept = p.Unmatched;

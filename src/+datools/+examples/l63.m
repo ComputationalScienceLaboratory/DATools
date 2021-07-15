@@ -63,7 +63,8 @@ meth = datools.statistical.ensemble.SIR(model, ...
     'Rejuvenation', rej, ...
     'Localization', localization, ...
     'Parallel', false, ...
-    'RIPIterations', 0);
+    'RIPIterations', 0, ...
+    'ResamplingThreshold', 0.5);
 
 meth.Ensemble = nature.State + meth.Ensemble;
 
@@ -108,7 +109,7 @@ for i = 1:times
     end
     
     if rem(i, 10) == 0
-        fprintf('step %d %.5f\n', i, rmse);
+        fprintf('step = %d rmse = %.5f\n', i, rmse);
     end
     
 end

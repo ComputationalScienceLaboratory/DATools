@@ -22,7 +22,9 @@ classdef SIR < datools.statistical.ensemble.EnF
             w = wf.*as;
             w = w/sum(w);
             
-            if 1/sum(w.^2) < ensN/2
+            ensEff = 1/sum(w.^2);
+            
+            if ensEff < ensN * obj.ResamplingThreshold
                 
                 what = cumsum(w);
                 a = rand(1, ensN);
