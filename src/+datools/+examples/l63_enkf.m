@@ -38,7 +38,7 @@ obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 %obserrormodel = datools.error.Tent;
 observation = datools.observation.Indexed(model.NumVars, ...
     'ErrorModel', obserrormodel, ...
-    'Indicies', observeindicies);
+    'Indices', observeindicies);
 
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
