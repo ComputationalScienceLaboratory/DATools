@@ -185,13 +185,14 @@ classdef LFETPF < datools.statistical.ensemble.EnF
                 
             end
             
+            obj.Ensemble = xa;
+            obj.Weights = ones(ensN, 1)/ensN;
+            
             % rejuvenation of this sort is not performed by default,
             % however it is included in this algorithm purely for
             % completeness
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            xa = xa + xf*P;
+            obj.rejuvenate(tau);
             
-            obj.Ensemble = xa;
             obj.Model.update(0, obj.BestEstimate);
             
         end

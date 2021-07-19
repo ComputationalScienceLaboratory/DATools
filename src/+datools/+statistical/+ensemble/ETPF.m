@@ -38,13 +38,15 @@ classdef ETPF < datools.statistical.ensemble.EnF
             Tx = linprog(f, [], [], AeqT, beqT, lbT, [], optsT);
             Tx = ensN*reshape(Tx, ensN, ensN);
             
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            xa = xf*(Tx + P);
+            xa = xf*Tx;
             
             obj.Ensemble = xa;
+            obj.Weights = ones(ensN, 1)/ensN;
+            obj.rejuvenate(tau);
+            
             obj.Model.update(0, obj.BestEstimate);
             
-            obj.Weights = ones(ensN, 1)/ensN;
+            
             
         end
         

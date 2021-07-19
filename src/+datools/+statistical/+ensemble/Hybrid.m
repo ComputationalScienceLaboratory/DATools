@@ -50,23 +50,10 @@ classdef Hybrid < datools.statistical.ensemble.EnF
                 end
             end
             
-            [n, ensN]  = size(X);
-            
-            if n < ensN + 2
-                Af = (Xf - mean(Xf))/sqrt(ensN -1);
-                                
-                vs = sqrt(sum(Af.^2, 2));
-                
-                Xi = sqrt(tau)*vs.*rand(n, ensN);
-                Xi = Xi - mean(Xi, 2);
-
-                X = X + Xi;
-            else
-                P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-                X = X + Xf*P;
-            end
-            
             obj.Ensemble = X;
+            obj.rejuvenate(tau);
+            
+            obj.Model.update(0, obj.BestEstimate);
 
         end
         
