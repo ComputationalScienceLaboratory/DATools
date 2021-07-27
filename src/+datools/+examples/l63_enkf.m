@@ -45,8 +45,9 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
-ensNs = 5:5:50;
-infs = 1.01:.01:1.05;
+ensNs = 45:5:50;
+infs = 1.05:.01:1.05;
+histvar = 1:1:1;
 serveindicies = 1:1:natureODE.NumVars;
 rmses = inf*ones(numel(ensNs), numel(infs));
 
@@ -97,7 +98,8 @@ for runn = runsleft.'
             'ModelError', modelerror, ...
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
-            'Parallel', false);
+            'Parallel', false, ...
+            'RankHistogram', histvar);
         
         enkf.setMean(natureODE.Y0);
         enkf.scaleAnomalies(1/10);
@@ -113,6 +115,8 @@ for runn = runsleft.'
         
         do_enkf = true;
         
+        
+        
         for i = 1:times
             % forecast
             
@@ -126,6 +130,9 @@ for runn = runsleft.'
             % observe
             xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
             y = enkf.Observation.observeWithError(model.TimeSpan(1), xt);
+            
+            % try RH
+            datools.utils.stat.RH(enkf, xt);
             
             % analysis
             
@@ -190,6 +197,8 @@ for runn = runsleft.'
     xlabel('Ensemble Size'); ylabel('Inflation');
     drawnow;
 end
+figure;
+bar(enkf.RankValue(1,1:end-1));
 
 return;
 

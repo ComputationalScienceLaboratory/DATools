@@ -10,6 +10,8 @@ classdef EnF < handle
         Rejuvenation
         Localization
         Parallel
+        RankHistogram
+        RankValue
     end
     
     properties (Dependent)
@@ -37,6 +39,7 @@ classdef EnF < handle
             addParameter(p, 'Localization', []);
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
+            addParameter(p, 'RankHistogram', [])
             parse(p, varargin{:});
             
             s = p.Results;
@@ -47,7 +50,11 @@ classdef EnF < handle
             obj.Rejuvenation = s.Rejuvenation;
             obj.Localization = s.Localization;
             obj.Parallel     = s.Parallel;
+            obj.RankHistogram = s.RankHistogram;
             ensN = s.NumEnsemble;
+            if ~isempty(obj.RankHistogram)
+                RankValue = zeros(length(obj.RankHistogram), ensN+2);
+            end
             
             kept = p.Unmatched;
             
@@ -118,6 +125,8 @@ classdef EnF < handle
             x = obj.Ensemble*obj.Weights;
             
         end
+        
+        
         
         function setMean(obj, xam)
             
