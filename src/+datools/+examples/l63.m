@@ -31,7 +31,7 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 % naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
 naturetomodel = datools.observation.Indexed(numel(nature0), 'Indices', 1:nvrs);
 
-observeindicies = 1:3;
+observeindicies = 1;
 
 nobsvars = numel(observeindicies);
 
@@ -47,14 +47,14 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(x) randn(nvrs, x);
 
-ensN = 200;
+ensN = 100;
 infl = 1.01;
 rej = 0.1;
 
 % No localization
 localization = [];
 
-meth = datools.statistical.ensemble.SIS_EnKF_res(model, ...
+meth = datools.statistical.ensemble.SIR(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
@@ -63,7 +63,8 @@ meth = datools.statistical.ensemble.SIS_EnKF_res(model, ...
     'Rejuvenation', rej, ...
     'Localization', localization, ...
     'Parallel', false, ...
-    'RIPIterations', 0);
+    'RIPIterations', 0, ...
+    'ResamplingThreshold', 0.5);
 
 meth.Ensemble = nature.State + meth.Ensemble;
 
@@ -104,12 +105,11 @@ for i = 1:times
         
         sse = sse + sum((xa - xt).^2);
         rmse = sqrt(sse/(i - spinup)/nvrs);
-        fprintf('step %d %.5f\n', i, rmse);
         
-    else
-        
-        fprintf('step %d\n', i)
-        
+    end
+    
+    if rem(i, 10) == 0
+        fprintf('step = %d rmse = %.5f\n', i, rmse);
     end
     
 end

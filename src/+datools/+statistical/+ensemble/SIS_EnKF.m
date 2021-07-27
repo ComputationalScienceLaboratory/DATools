@@ -1,4 +1,4 @@
-classdef SIS_EnKF_res < datools.statistical.ensemble.EnF
+classdef SIS_EnKF < datools.statistical.ensemble.EnF
     
     methods
         
@@ -48,11 +48,11 @@ classdef SIS_EnKF_res < datools.statistical.ensemble.EnF
             % To deal with low rank V when obsize < modelsize
             V = V + trace(V)/modelsize*(eye(modelsize));
             
-            prop = exp(-0.5*sum(t0.*(V\t0), 1));
+            prop = exp(-0.5*sum(t0.*(V\t0), 1)).';
             
             Hxa = obj.Observation.observeWithoutError(tc, xa);
             t0 = Hxa - y;
-            lik = exp(-0.5*sum(t0.*(R\t0), 1));
+            lik = exp(-0.5*sum(t0.*(R\t0), 1)).';
             
             % If model error is present, need to calculate the probabilities of evolution
             % otherwise, it is assumed 1.
@@ -71,14 +71,14 @@ classdef SIS_EnKF_res < datools.statistical.ensemble.EnF
                     ind = find(a(i) < what, 1);
                     xa(:, i) = xf(:, ind);
                 end
-                w = (1/ensN)*ones(1, ensN);
+                w = (1/ensN)*ones(ensN, 1);
             end
             
-            P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-            xa = xa + xf*P;
             
             obj.Ensemble = xa;
             obj.Weights = w;
+            obj.rejuvenate(tau);
+            
             obj.Model.update(0, obj.BestEstimate);
             
         end

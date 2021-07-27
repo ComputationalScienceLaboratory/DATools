@@ -12,6 +12,7 @@ classdef EnF < handle
         Parallel
         RankHistogram
         RankValue
+        ResamplingThreshold
     end
     
     properties (Dependent)
@@ -40,6 +41,7 @@ classdef EnF < handle
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
             addParameter(p, 'RankHistogram', [])
+            addParameter(p, 'ResamplingThreshold', 0.5);
             parse(p, varargin{:});
             
             s = p.Results;
@@ -51,6 +53,7 @@ classdef EnF < handle
             obj.Localization = s.Localization;
             obj.Parallel     = s.Parallel;
             obj.RankHistogram = s.RankHistogram;
+            obj.ResamplingThreshold = s.ResamplingThreshold;
             ensN = s.NumEnsemble;
             if ~isempty(obj.RankHistogram)
                 RankValue = zeros(length(obj.RankHistogram), ensN+2);
@@ -130,23 +133,45 @@ classdef EnF < handle
         
         function setMean(obj, xam)
             
-            Xf  = obj.Ensemble;
-            ensN = size(Xf, 2);
-            xfm  = mean(Xf,  2);
-            Af  = (Xf  - repmat(xfm,  1, ensN));
-            Xf  = repmat(xam, 1, ensN) + Af;
-            obj.Ensemble= Xf;
+            X  = obj.Ensemble;
+            ensN = size(X, 2);
+            xm  = mean(X,  2);
+            A  = (X  - repmat(xm,  1, ensN));
+            X  = repmat(xam, 1, ensN) + A;
+            obj.Ensemble = X;
             
         end
         
         function scaleAnomalies(obj, scale)
             
-            Xf  = obj.Ensemble;
-            ensN = size(Xf, 2);
-            xfm  = mean(Xf, 2);
-            Af  = scale*(Xf - repmat(xfm, 1, ensN));
-            Xf  = repmat(xfm, 1, ensN) + Af;
-            obj.Ensemble = Xf;
+            X  = obj.Ensemble;
+            ensN = size(X, 2);
+            xm  = mean(X, 2);
+            A  = scale*(X - repmat(xm, 1, ensN));
+            X  = repmat(xm, 1, ensN) + A;
+            obj.Ensemble = X;
+            
+        end
+        
+        function rejuvenate(obj, tau)
+            
+            X = obj.Ensemble;
+            [n, ensN] = size(X);
+            
+            if n > ensN + 2
+                A = (X - mean(X, 2))/sqrt(ensN -1);
+                vs = sqrt(sum(A.^2, 2));
+                
+                Xi = sqrt(tau)*vs.*rand(n, ensN);
+                Xi = Xi - mean(Xi, 2);
+                
+                X = X + Xi;
+            else
+                P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
+                X = X + X*P;
+            end
+            
+            obj.Ensemble = X;
             
         end
         
