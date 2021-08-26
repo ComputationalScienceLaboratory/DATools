@@ -13,6 +13,7 @@ classdef EnF < handle
         RankHistogram
         RankValue
         ResamplingThreshold
+        Tail
     end
     
     properties (Dependent)
@@ -42,6 +43,7 @@ classdef EnF < handle
             addParameter(p, 'RIPIterations', 0);
             addParameter(p, 'RankHistogram', [])
             addParameter(p, 'ResamplingThreshold', 0.5);
+            addParameter(p, 'Tail', []);
             parse(p, varargin{:});
             
             s = p.Results;
@@ -54,6 +56,7 @@ classdef EnF < handle
             obj.Parallel     = s.Parallel;
             obj.RankHistogram = s.RankHistogram;
             obj.ResamplingThreshold = s.ResamplingThreshold;
+            obj.Tail = s.Tail;
             ensN = s.NumEnsemble;
             if ~isempty(obj.RankHistogram)
                 RankValue = zeros(length(obj.RankHistogram), ensN+2);

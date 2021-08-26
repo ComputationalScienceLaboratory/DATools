@@ -1,4 +1,4 @@
-clear; close all;
+clear; close all; clc;
 figure;
 drawnow;
 
@@ -46,12 +46,11 @@ modelerror = datools.error.Error;
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
 ensNs = 20:5:25;
-infs = 1.05:.01:1.05;
-histvar = 1:1:1;
+infs = 1.10:.01:1.10;
 serveindicies = 1:1:natureODE.NumVars;
 rmses = inf*ones(numel(ensNs), numel(infs));
 
-maxallowerr = 2;
+maxallowerr = 20;
 
 mm = min(rmses(:));
 
@@ -59,8 +58,8 @@ if  mm >= maxallowerr
     mm = 0;
 end
 
-imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-axis square; title('EnKF_l63'); colormap('hot');
+imagesc(ensNs, infs, rmses.'); caxis([mm, 5]); colorbar; set(gca,'YDir','normal');
+axis square; title('RHF_l63'); colormap('hot');
 xlabel('Ensemble Size'); ylabel('Inflation');
 
 runsleft = find(rmses == inf);
@@ -82,27 +81,17 @@ for runn = runsleft.'
         
         inflation = inflationAll;
         
-        % No localization
-%         r = 5;
-%         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
-        %localization = [];
-        
-        %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
-        
-%         localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
-        %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
-        
-        enkf = datools.statistical.ensemble.EnKF(model, ...
+        rhf = datools.statistical.ensemble.RHF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
-            'RankHistogram', histvar);
+            'Tail', 'Flat');
         
-        enkf.setMean(natureODE.Y0);
-        enkf.scaleAnomalies(1/10);
+        rhf.setMean(natureODE.Y0);
+        rhf.scaleAnomalies(1/10);
         
         spinup = 100;
         times = 11*spinup;
@@ -115,36 +104,33 @@ for runn = runsleft.'
         
         do_enkf = true;
         
-        
-        
         for i = 1:times
             % forecast
-            
             nature.evolve();
             
             if do_enkf
-                enkf.forecast();
+                rhf.forecast();
             end
             
             
             % observe
             xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = enkf.Observation.observeWithError(model.TimeSpan(1), xt);
+            y = rhf.Observation.observeWithError(model.TimeSpan(1), xt);
             
             % try RH
-            datools.utils.stat.RH(enkf, xt);
+            %datools.utils.stat.RH(enkf, xt);
             
             % analysis
             
             % try
             if do_enkf
-                enkf.analysis(R, y);
+                rhf.analysis(R, y);
             end
             %catch
             %    do_enkf = false;
             %end
             
-            xa = enkf.BestEstimate;
+            xa = rhf.BestEstimate;
             
             err = xt - xa;
             
@@ -174,7 +160,6 @@ for runn = runsleft.'
         else
             sE(sample) = rmse;
         end
-        
     end
     rmse
     resE = mean(sE);
@@ -192,12 +177,10 @@ for runn = runsleft.'
         mm = 0;
     end
     
-    imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-    axis square; title('EnKF'); colormap('pink');
+    imagesc(ensNs, infs, rmses.'); caxis([mm, 5]); colorbar; set(gca,'YDir','normal');
+    axis square; title('RHF'); colormap('pink');
     xlabel('Ensemble Size'); ylabel('Inflation');
     drawnow;
 end
-% figure;
-% bar(enkf.RankValue(1,1:end-1));
-return;
 
+%saveas(gcf, 'plot.png')
