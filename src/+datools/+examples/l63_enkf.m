@@ -45,8 +45,8 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
-ensNs = 45:5:50;
-infs = 1.05:.01:1.05;
+ensNs = 50:5:50;
+infs = 1.20:.01:1.20;
 histvar = 1:1:1;
 serveindicies = 1:1:natureODE.NumVars;
 rmses = inf*ones(numel(ensNs), numel(infs));
