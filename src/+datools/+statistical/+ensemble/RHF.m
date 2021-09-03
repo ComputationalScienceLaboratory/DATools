@@ -1,14 +1,39 @@
 classdef RHF < datools.statistical.ensemble.EnF
     
+    properties
+        Tail
+        Truncate
+        DiscretePoint
+    end
+    
     % Define the update method
     methods
+        function obj = RHF(varargin)
+            p = inputParser;
+            p.KeepUnmatched = true;
+            
+            addParameter(p, 'Tail', []);
+            addParameter(p, 'Truncate', 20);
+            addParameter(p, 'DiscretePoint', 1e5);
+            parse(p, varargin{2:end});
+            
+            s = p.Results;
+            
+            kept = p.Unmatched;
+            
+            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj.Tail = s.Tail;
+            obj.Truncate = s.Truncate;
+            obj.DiscretePoint = s.DiscretePoint;
+        end
+        
         function analysis(obj, R, y)
             inflation = obj.Inflation;
             tc = obj.Model.TimeSpan(1);
             
-            % define length of gaussian tail (make it a member of base class, if required)
-            gtl = 20;
-            discrete_pts = 1e5;
+            % define length of gaussian tail
+            gtl = obj.Truncate;
+            discrete_pts = obj.DiscretePoint;
             
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -56,6 +81,9 @@ classdef RHF < datools.statistical.ensemble.EnF
                 elseif strcmp(obj.Tail, 'Flat') == 1
                     prior_ht{1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
                     prior_ht{length(xfs) + 1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
+                else
+                    fprintf('Error! Gaussian tail not provided!');
+                    break;
                 end
                                 
                 inn = y(i) - sort(Hxf(i,:));
