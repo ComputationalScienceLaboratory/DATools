@@ -1,4 +1,4 @@
-clear; close all; clc;
+clear all; close all; clc;
 figure;
 drawnow;
 
@@ -183,4 +183,4 @@ for runn = runsleft.'
     drawnow;
 end
 
-%saveas(gcf, 'plot.png')
+saveas(gcf, 'plot.png')
