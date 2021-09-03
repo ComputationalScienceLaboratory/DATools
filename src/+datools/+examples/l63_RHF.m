@@ -88,10 +88,10 @@ for runn = runsleft.'
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
-            'Tail', 'Flat');
+            'Tail', 'Gaussian');
         
-        rhf.setMean(natureODE.Y0);
-        rhf.scaleAnomalies(1/10);
+%         rhf.setMean(natureODE.Y0);
+%         rhf.scaleAnomalies(1/10);
         
         spinup = 100;
         times = 11*spinup;
