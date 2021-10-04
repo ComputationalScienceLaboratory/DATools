@@ -31,7 +31,7 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 % naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
 naturetomodel = datools.observation.Indexed(numel(nature0), 'Indices', 1:nvrs);
 
-observeindicies = 1;
+observeindicies = 1:3;
 
 nobsvars = numel(observeindicies);
 
@@ -54,7 +54,7 @@ rej = 0.1;
 % No localization
 localization = [];
 
-meth = datools.statistical.ensemble.SIR(model, ...
+meth = datools.statistical.ensemble.LETPF2(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'NumEnsemble', ensN, ...
