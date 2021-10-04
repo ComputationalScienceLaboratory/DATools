@@ -107,7 +107,7 @@ classdef LETPF2 < datools.statistical.ensemble.EnF
             
             obj.Ensemble = xa;
             obj.Weights = ones(ensN, 1)/ensN;
-            obj.rejuvenate(tau);
+            obj.rejuvenate(tau, xf);
             
             obj.Model.update(0, obj.BestEstimate);
             

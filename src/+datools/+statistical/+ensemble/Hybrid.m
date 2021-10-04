@@ -51,7 +51,7 @@ classdef Hybrid < datools.statistical.ensemble.EnF
             end
             
             obj.Ensemble = X;
-            obj.rejuvenate(tau);
+            obj.rejuvenate(tau, xf);
             
             obj.Model.update(0, obj.BestEstimate);
 

@@ -41,7 +41,7 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             obj.Ensemble = xa;
             obj.Weights = w;
-            obj.rejuvenate(tau);
+            obj.rejuvenate(tau, xf);
             
             obj.Model.update(0, obj.BestEstimate);
             
