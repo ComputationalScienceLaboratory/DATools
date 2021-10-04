@@ -37,7 +37,7 @@ classdef Hybrid < datools.statistical.ensemble.EnF
             X = obj.Ensemble;
             alphas = obj.Alphas;
             
-            Xf = X;
+            xf = X;
             
             for i = 1:numel(obj.Filters)
                 alpha = alphas(i);
