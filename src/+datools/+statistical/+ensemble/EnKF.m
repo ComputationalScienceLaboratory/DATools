@@ -46,7 +46,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
             Aa = Af + PfHt*(dS\(sqrtm(R)*randn(size(HAf)) - HAf));
             
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
-            obj.Model.update(0, obj.BestEstimate);
+            %obj.Model.update(0, obj.BestEstimate);
             
         end
         

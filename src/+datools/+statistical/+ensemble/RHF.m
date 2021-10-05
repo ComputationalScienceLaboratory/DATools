@@ -14,7 +14,7 @@ classdef RHF < datools.statistical.ensemble.EnF
             
             addParameter(p, 'Tail', []);
             addParameter(p, 'Truncate', 20);
-            addParameter(p, 'DiscretePoint', 1e5);
+            addParameter(p, 'DiscretePoint', 1e3);
             parse(p, varargin{2:end});
             
             s = p.Results;

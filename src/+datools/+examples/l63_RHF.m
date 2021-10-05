@@ -45,12 +45,12 @@ modelerror = datools.error.Error;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
-ensNs = 20:5:25;
-infs = 1.10:.01:1.10;
+ensNs = 5:5:50;
+infs = 1.01:.01:1.10;
 serveindicies = 1:1:natureODE.NumVars;
 rmses = inf*ones(numel(ensNs), numel(infs));
 
-maxallowerr = 20;
+maxallowerr = 100;
 
 mm = min(rmses(:));
 
@@ -88,7 +88,7 @@ for runn = runsleft.'
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
-            'Tail', 'Gaussian');
+            'Tail', 'Flat');
         
 %         rhf.setMean(natureODE.Y0);
 %         rhf.scaleAnomalies(1/10);

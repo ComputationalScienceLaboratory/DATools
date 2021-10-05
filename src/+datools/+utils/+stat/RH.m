@@ -11,16 +11,14 @@ function RH(model, xt)
         exit;
     end
     var = length(model.RankHistogram);
-    % define variables
-    %fprintf('Ens = %.3f\n', model.NumEnsemble);
-    
+        
     xf = model.Ensemble;
-    [stateN,ensN] = size(xf);
+    [~,ensN] = size(xf);
     
     %rankVal = zeros(length(var), ensN+2);
    
-   for i = 1:length(var)
-       tempVar = var(i);
+   for i = 1:var
+       tempVar = model.RankHistogram(i);
        model.RankValue(i, ensN+2) = tempVar;
        ensFor = sort(xf(tempVar, :));
        
