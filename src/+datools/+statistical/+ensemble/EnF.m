@@ -153,13 +153,13 @@ classdef EnF < handle
             
         end
         
-        function rejuvenate(obj, tau)
+        function rejuvenate(obj, tau, Xf)
             
             X = obj.Ensemble;
             [n, ensN] = size(X);
             
             if n > ensN + 2
-                A = (X - mean(X, 2))/sqrt(ensN -1);
+                A = (Xf - mean(Xf, 2))/sqrt(ensN - 1);
                 vs = sqrt(sum(A.^2, 2));
                 
                 Xi = sqrt(tau)*vs.*rand(n, ensN);
@@ -168,7 +168,7 @@ classdef EnF < handle
                 X = X + Xi;
             else
                 P = sqrt(tau/(ensN - 1))*(eye(ensN) - ones(ensN)/ensN)*randn(ensN)*(eye(ensN) - ones(ensN)/ensN);
-                X = X + X*P;
+                X = X + Xf*P;
             end
             
             obj.Ensemble = X;

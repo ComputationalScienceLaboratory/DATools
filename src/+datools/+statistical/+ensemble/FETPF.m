@@ -165,7 +165,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             % rejuvenation of this sort is not performed by default,
             % however it is included in this algorithm purely for
             % completeness
-            obj.rejuvenate(tau);
+            obj.rejuvenate(tau, xf);
             
             obj.Model.update(0, obj.BestEstimate);
             
