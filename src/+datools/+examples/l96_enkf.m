@@ -50,7 +50,7 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 % ensNs = 100:100:500;
 % infs = 1.01:.01:1.05;
 
-ensNs = [25 50 75 100];
+ensNs = [15 25 50 100];
 infs = [1.01 1.02 1.05 1.10];
 rejs = [1.01 1.02 1.03 1.05];
 
@@ -95,19 +95,19 @@ for runn = runsleft.'
         
         % No localization
 
-        r = 3;
+        r = 4;
         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
         localization = [];
         
         
         
         
-        %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
+        localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         %$localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
         
 
-        enkf = datools.statistical.ensemble.ETKF(model, ...
+        enkf = datools.statistical.ensemble.RHF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -184,7 +184,7 @@ for runn = runsleft.'
             
         end
         
-        if isnan(rmse)
+        if isnan(rmse)Vi
             rmse = 1000;
         end
         
@@ -214,9 +214,12 @@ for runn = runsleft.'
         mm = 0;
     end
     
-    
+    rw = numel(infs) - 1 - floor((runn-1)/numel(ensNs));
+    cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
     figure(f1);
-    subplot(numel(infs), numel(ensNs), runn);
+    %set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    %set(gca, 'XTickLabel', ensNs);
+    subplot(numel(infs), numel(ensNs), rw*numel(ensNs) + cl);
     hold all;
     z = enkf.RankValue(1,1:end-1);
     z = z/sum(z);
@@ -226,29 +229,49 @@ for runn = runsleft.'
     plot(xs, pval, '-*r');
     set(gca,'XTick',[xs(1) xs(end)]);
     set(gca,'XTickLabel',[1, ensN+1]);
-    xlabel('bins'); 
+    set(gca,'YTick',[]);
+    set(gca,'YTickLabel',[]);
+    han=axes(f1,'visible','off');
+    han.Title.Visible='on';
+    han.XLabel.Visible='on';
+    han.YLabel.Visible='on';
+    %han.XTick.Visible = 'on';
+    %han.XTickLabel.Visible = 'on';
+    %set(han, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    %set(han, 'XTickLabel', ensNs);
+    ylabel(han,'Inflation');
+    xlabel(han,'Ensemble Size');
+    title(han,'Rank Histogram');
     drawnow;
     
     figure(f2);
-    imagesc(ensNs.', infs.', flipud(rmses.')); caxis([0, 1]); colorbar; set(gca,'YDir','normal');
-    axis square; title('EnKF'); colormap('pink');
+    imagesc(ensNs, infs, rmses.'); caxis([0, 1]); colorbar;
+    set(gca,'YDir','normal');
+    set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    set(gca, 'XTickLabel', ensNs);
+    set(gca, 'YTick', linspace(infs(1), infs(end), size(infs,2)));
+    set(gca, 'YTickLabel', infs);
+    axis square; title('Rmse HeatMap'); colormap('pink');
     xlabel('Ensemble Size'); ylabel('Inflation');
-    ytics = max(infs) - min(infs);
-    ytics = min(infs):ytics/(length(infs) - 1):max(infs);
-    set(gca,'YTick', ytics);
-    set(gca,'YTickLabel', fliplr(infs));
     drawnow;
     
     figure(f3);
-    imagesc(ensNs, infs, flipud(rhplotval.')); caxis([-0.09 0.09]); colorbar; set(gca, 'YDir', 'normal');
-    axis square; title('KLDiv'); colormap('summer');
+    map = bone;
+    map = map(1:2:end-1, :);
+    pt = flipud(pink);
+    map = [map; pt(2:2:end,:)];
+    imagesc(ensNs, infs, rhplotval.'); caxis([-0.1 0.1]); colorbar;
+    set(gca, 'YDir', 'normal');
+    set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    set(gca, 'XTickLabel', ensNs);
+    set(gca, 'YTick', linspace(infs(1), infs(end), size(infs,2)));
+    set(gca, 'YTickLabel', infs);
+    axis square; title('KLDiv'); colormap(map);
     xlabel('Ensemble Size'); ylabel('Inflation');
-    set(gca,'YTick', ytics);
-    set(gca,'YTickLabel', fliplr(infs));
     drawnow;
     
     figure(f4);
-    subplot( numel(infs), numel(ensNs), runn);
+    subplot( numel(infs), numel(ensNs), rw*numel(ensNs) + cl);
     plot(spinup+1:1:times, rmstempval);
     xlim([spinup+1 times]); ylim([0 1]);
     set(gca, 'XTick', [spinup+1 times])
@@ -258,7 +281,7 @@ for runn = runsleft.'
     han.XLabel.Visible='on';
     han.YLabel.Visible='on';
     ylabel(han,'Value');
-    xlabel(han,'Time Step');
+    xlabel(han,'Time Steps');
     title(han,'RMSE');
     drawnow;
     
@@ -267,5 +290,6 @@ for runn = runsleft.'
 %     xlabel('Ensemble Size'); ylabel('Inflation');
 %     drawnow;
 end
-
+savdir = '/home/abhinab93/Documents/experiments/Lorenz96/EnKFr4/l96enkf.mat';
+save(fullfile(savdir));
 return;

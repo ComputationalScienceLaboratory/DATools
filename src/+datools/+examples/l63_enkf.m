@@ -2,6 +2,15 @@ clear; close all;
 % figure;
 % drawnow;
 
+% SETTINGS
+% Uncomment whichever filter you want to run with.
+filterName = 'EnKF';
+% fitlerName = 'ETPF';
+% filterName = 'ETKF';
+
+
+% OTHER STUFF
+
 % time steps
 Delta_t = 0.12;
 
@@ -56,9 +65,11 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 % infs = 1.01:0.01:1.04;
 
 %ensNs = [5 15 25 50];
-ensNs = [50 100 150 200];
+ensNs = [10 50 100 200];
 infs = [1.01 1.02 1.05 1.10];
-rejs = [0.10 0.12 0.15 0.20];
+rejs = 2*logspace(-2, -1, 4);
+rejs = round(rejs,2);
+%rejs = [0.02 0.12 0.15 0.20];
 
 % variables for which you need the rank histogram plot
 histvar = 1:1:3;
@@ -103,7 +114,7 @@ for runn = runsleft.'
         rejuvenation = rejAll;
         
         % define the statistical/variational model here
-        enkf = datools.statistical.ensemble.SIR(model, ...
+        enkf = datools.statistical.ensemble.ETPF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -117,7 +128,7 @@ for runn = runsleft.'
         enkf.scaleAnomalies(1/10);
         
         % define steps and spinups
-        spinup = 100;
+        spinup = 500;
         times = 11*spinup;
         
         mses = zeros(times - spinup, 1);
@@ -210,8 +221,10 @@ for runn = runsleft.'
         mm = 0;
     end
     
+    rw = numel(infs) - 1 - floor((runn-1)/numel(ensNs));
+    cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
     figure(f1);
-    subplot(numel(infs), numel(ensNs), runn);
+    subplot(numel(infs), numel(ensNs), rw*numel(ensNs) + cl);
     hold all;
     z = enkf.RankValue(1,1:end-1);
     maxz = max(z);
@@ -222,35 +235,58 @@ for runn = runsleft.'
     plot(xs, pval, '-*r');
     set(gca,'XTick',[xs(1) xs(end)]);
     set(gca,'XTickLabel',[1, ensN+1]);
-    xlabel('bins'); 
+    set(gca,'YTick',[]);
+    set(gca,'YTickLabel',[]);
+    han=axes(f1,'visible','off');
+    han.Title.Visible='on';
+    han.XLabel.Visible='on';
+    han.YLabel.Visible='on';
+    %han.XTick.Visible = 'on';
+    %han.XTickLabel.Visible = 'on';
+    %set(han, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    %set(han, 'XTickLabel', ensNs);
+    ylabel(han,'Inflation');
+    %ylabel(han,'Rejuvetion');
+    xlabel(han,'Ensemble Size');
+    title(han,'Rank Histogram');
     drawnow;
     
     figure(f2);
-    %imagesc(ensNs.', infs.', flipud(rmses.')); caxis([0, 1]); colorbar; set(gca,'YDir','normal');
-    imagesc(ensNs.', rejs.', flipud(rmses.')); caxis([0, 1]); colorbar; set(gca,'YDir','normal');
-    axis square; title('ETPF'); colormap('pink');
-    xlabel('Ensemble Size'); ylabel('Inflation');
-    %ytics = max(infs) - min(infs);
-    ytics = max(rejs) - min(rejs);
-    %ytics = min(infs):ytics/(length(infs) - 1):max(infs);
-    ytics = min(rejs):ytics/(length(rejs) - 1):max(rejs);
-    set(gca,'YTick', ytics);
-    %set(gca,'YTickLabel', fliplr(infs));
-    set(gca,'YTickLabel', fliplr(rejs));
+    imagesc(ensNs, infs, rmses.'); caxis([0, 1]); colorbar; set(gca,'YDir','normal');
+    %imagesc(ensNs, rejs, rmses.'); caxis([0, 1]); colorbar; set(gca,'YDir','normal');
+    axis square; title('Rmse HeatMap'); colormap('pink');
+    xlabel('Ensemble Size'); 
+    ylabel('Inflation');
+    %ylabel('Rejuvetion');
+    set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    set(gca, 'XTickLabel', ensNs);
+    set(gca, 'YTick', linspace(infs(1), infs(end), size(infs,2)));
+    set(gca, 'YTickLabel', infs);
+    %set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs,2)));
+    %set(gca, 'YTickLabel', rejs);
     drawnow;
     
     figure(f3);
-    %imagesc(ensNs.', infs.', flipud(rhplotval.')); caxis([-0.09 0.09]); colorbar; set(gca, 'YDir', 'normal');
-    imagesc(ensNs, rejs, flipud(rhplotval.')); caxis([-0.09 0.09]); colorbar; set(gca, 'YDir', 'normal');
-    axis square; title('KLDiv'); colormap('summer');
-    xlabel('Ensemble Size'); ylabel('Inflation');
-    set(gca,'YTick', ytics);
-    %set(gca,'YTickLabel', fliplr(infs));
-    set(gca,'YTickLabel', fliplr(rejs));
+    map = bone;
+    map = map(1:2:end-1, :);
+    pt = flipud(pink);
+    map = [map; pt(2:2:end,:)];
+    imagesc(ensNs, infs, rhplotval.'); caxis([-0.1 0.1]); colorbar; set(gca, 'YDir', 'normal');
+    %imagesc(ensNs, rejs, rhplotval.'); caxis([-0.1 0.1]); colorbar; set(gca, 'YDir', 'normal');
+    set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    set(gca, 'XTickLabel', ensNs);
+    set(gca, 'YTick', linspace(infs(1), infs(end), size(infs,2)));
+    set(gca, 'YTickLabel', infs);
+    %set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs,2)));
+    %set(gca, 'YTickLabel', rejs);
+    axis square; title('KLDiv'); colormap(map);
+    xlabel('Ensemble Size'); 
+    ylabel('Inflation');
+    %ylabel('Rejuvetion');
     drawnow;
     
     figure(f4);
-    subplot( numel(infs), numel(ensNs), runn);
+    subplot( numel(infs), numel(ensNs), rw*numel(ensNs) + cl);
     plot(spinup+1:1:times, rmstempval);
     xlim([spinup+1 times]); ylim([0 1]);
     set(gca, 'XTick', [spinup+1 times])
@@ -279,5 +315,6 @@ end
 %     
 % end
 
-
+savdir = '/home/abhinab93/Documents/experiments/Lorenz63/ETPF/l63ETPF.mat';
+save(fullfile(savdir));
 return;

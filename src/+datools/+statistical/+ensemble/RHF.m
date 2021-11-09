@@ -12,9 +12,9 @@ classdef RHF < datools.statistical.ensemble.EnF
             p = inputParser;
             p.KeepUnmatched = true;
             
-            addParameter(p, 'Tail', []);
-            addParameter(p, 'Truncate', 20);
-            addParameter(p, 'DiscretePoint', 1e3);
+            addParameter(p, 'Tail', 'Flat');
+            addParameter(p, 'Truncate', 10);
+            addParameter(p, 'DiscretePoint', 1e4);
             parse(p, varargin{2:end});
             
             s = p.Results;
@@ -82,8 +82,8 @@ classdef RHF < datools.statistical.ensemble.EnF
                     prior_ht{1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
                     prior_ht{length(xfs) + 1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
                 else
-                    fprintf('Error! Gaussian tail not provided!');
-                    break;
+                    fprintf('Error! Gaussian tail not provided!\n');
+                    return;
                 end
                                 
                 inn = y(i) - sort(Hxf(i,:));
