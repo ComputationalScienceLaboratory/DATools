@@ -27,6 +27,7 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 naturetomodel = datools.observation.Linear(numel(nature0), 'H',...
     speye(natureODE.NumVars));
 
+    N: 50, inf: 1.020
 %observeindicies = 1:natureODE.NumVars;
 observeindicies = 1:1:natureODE.NumVars;
 

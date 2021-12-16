@@ -64,8 +64,8 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 % ensNs = 10:5:25;
 % infs = 1.01:0.01:1.04;
 
-%ensNs = [5 15 25 50];
-ensNs = [10 50 100 200];
+ensNs = [5 15 25 50];
+%ensNs = [10 50 100 200];
 infs = [1.01 1.02 1.05 1.10];
 rejs = 2*logspace(-2, -1, 4);
 rejs = round(rejs,2);
@@ -114,7 +114,7 @@ for runn = runsleft.'
         rejuvenation = rejAll;
         
         % define the statistical/variational model here
-        enkf = datools.statistical.ensemble.ETPF(model, ...
+        enkf = datools.statistical.ensemble.EnKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -315,6 +315,6 @@ end
 %     
 % end
 
-savdir = '/home/abhinab93/Documents/experiments/Lorenz63/ETPF/l63ETPF.mat';
-save(fullfile(savdir));
+% savdir = '/home/abhinab93/Documents/experiments/Lorenz63/ETPF/l63ETPF.mat';
+% save(fullfile(savdir));
 return;

@@ -102,12 +102,12 @@ for runn = runsleft.'
         
         
         
-        localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
+        %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         %$localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
         
 
-        enkf = datools.statistical.ensemble.RHF(model, ...
+        enkf = datools.statistical.ensemble.EnKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
@@ -184,7 +184,7 @@ for runn = runsleft.'
             
         end
         
-        if isnan(rmse)Vi
+        if isnan(rmse)
             rmse = 1000;
         end
         
@@ -290,6 +290,6 @@ for runn = runsleft.'
 %     xlabel('Ensemble Size'); ylabel('Inflation');
 %     drawnow;
 end
-savdir = '/home/abhinab93/Documents/experiments/Lorenz96/EnKFr4/l96enkf.mat';
-save(fullfile(savdir));
+% savdir = '/home/abhinab93/Documents/experiments/Lorenz96/EnKFr4/l96enkf.mat';
+% save(fullfile(savdir));
 return;

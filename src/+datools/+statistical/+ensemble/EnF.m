@@ -36,7 +36,7 @@ classdef EnF < handle
             addParameter(p, 'ModelError', datools.error.Error);
             addParameter(p, 'NumEnsemble', 1);
             addParameter(p, 'Inflation', 1);
-            addParameter(p, 'Rejuvenation', 0);
+            addParameter(p, 'Rejuvenation', []);
             addParameter(p, 'Localization', []);
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
