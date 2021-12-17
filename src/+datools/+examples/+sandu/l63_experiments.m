@@ -3,36 +3,34 @@ clear all; close all;
 % Use this to run Lorenz 63 experiments
 
 % uncomment the filter you want to run
-%filtername = 'EnKF';
+filtername = 'EnKF';
 %filtername = 'ETKF';
 %filtername = 'ETPF';
-filtername = 'SIR';
+%filtername = 'SIR';
+%filtername = 'RHF';
 
 % oservation variance
 variance = 1;
 
 % create an aray of ensemble
-ensNs = [25 50 75];
+ensNs = [25 50 75 100];
 
 % create an array of inflation
-infs = [1.01 1.02 1.05];
+infs = [1.01 1.02 1.05 1.10];
 
 % create an array of rejuvination
 rejs = 2*logspace(-2, -1, 4);
 rejs = round(rejs,2);
 
-% variables for which you need the rank histogram plot
-% note there will be a different plot for each state variable
-histvar = 1:1:1;
-
 % define steps and spinups
-spinup = 50;
+spinup = 500;
 times = 11*spinup;
 
 % Mention the location and name to save (change this)(uncomment the last line)
 savdir = '/home/abhinab93/Documents/experiments/Lorenz63/ETPF/l63ETPF.mat';
 
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+histvar = 1:1:1;
 %decide the type of filter
 switch filtername
     case 'EnKF'
@@ -189,7 +187,8 @@ for runn = runsleft.'
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Inflation', inflation, ...
                     'Parallel', false, ...
-                    'Tail', 'Flat');
+                    'RankHistogram', histvar, ...
+                    'Tail', 'Gaussian');
                 
         end
         
@@ -397,13 +396,7 @@ for runn = runsleft.'
     
 end
 
-%% RH plot if needed
 
-% figure;
-% for i = 1: length(enkf.RankValue(:,1))
-%     subplot(1,3,i);
-%     bar(enkf.RankValue(i,1:end-1));
-% end
 
 %save(fullfile(savdir));
 return;

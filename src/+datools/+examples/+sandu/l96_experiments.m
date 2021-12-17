@@ -6,9 +6,9 @@ clear all; close all;
 %filtername = 'EnKF';
 %filtername = 'ETKF';
 %filtername = 'ETPF';
-filtername = 'SIR';
-%filtername = 'LETKF'
-%filtername = 'RHF'
+%filtername = 'SIR';
+%filtername = 'LETKF';
+filtername = 'RHF';
 
 %datools.statistical.ensemble.(filtername);
 
@@ -16,7 +16,7 @@ filtername = 'SIR';
 variance = 1;
 
 % create an aray of ensemble
-ensNs = [15 25 50];
+ensNs = [50 75 100];
 
 % create an array of inflation
 infs = [1.02 1.05 1.10];
@@ -25,23 +25,20 @@ infs = [1.02 1.05 1.10];
 rejs = 2*logspace(-2, -1, 4);
 rejs = round(rejs,2);
 
-% variables for which you need the rank histogram plot
-% note there will be a different plot for each state variable
-histvar = 1:1:1;
-
 % define steps and spinups
-spinup = 50;
+spinup = 500;
 times = 11*spinup;
 
 % localization radius
 r = 4;
-localize = true; % Change this if you need localization
+localize = true; % Change this if you need/not need localization
 
 % Mention the location and name to save (uncomment the last line)
 savdir = '/home/abhinab93/Documents/experiments/Lorenz96/EnKF/l96enkf.mat';
 
 
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+histvar = 1:1:1;
 %decide the type of filter
 switch filtername
     case 'EnKF'
@@ -235,7 +232,8 @@ for runn = runsleft.'
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Inflation', inflation, ...
                     'Parallel', false, ...
-                    'Tail', 'Flat');
+                    'RankHistogram', histvar, ...
+                    'Tail', 'Gaussian');
                 
         end
         

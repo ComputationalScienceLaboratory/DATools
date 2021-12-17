@@ -52,35 +52,27 @@ classdef RHF < datools.statistical.ensemble.EnF
             Hxf = obj.Observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
             
+            ind1 = 1:ensN-1; ind2 = 2:ensN;
+            
             % do for each state variable
             for i = 1:size(xf,1)
                 [xfs, sortin] = sort(xf(i,:));
                 
-                prior_ht = cell(1, length(xfs)+1);
+                % try inflating the background
+                xfs = mean(xfs) + inflation*(xfs - mean(xfs));
+                
+                prior_ht = zeros(1, ensN + 1);
                 % find the height of uniform part
-                for ii = 2:length(xfs)
-                    prior_ht{ii} = 1/ ((ensN + 1)*abs((xfs(ii) - xfs(ii-1))));
+                for ii = 2:ensN
+                    prior_ht(ii) = 1/ ((ensN + 1)*abs((xfs(ii) - xfs(ii-1))));
                 end
                 
                 Var = xfv(i);
-                xleft = linspace(xfs(1) - gtl, xfs(1), discrete_pts);
-                xright = linspace(xfs(length(xfs)), xfs(length(xfs)) + gtl, discrete_pts);
                 
                 if strcmp(obj.Tail, 'Gaussian') == 1
-                    options = optimoptions(@fminunc,'FunctionTolerance',1e-12, 'Display', 'none');
-                    
-                    pdfl = @(mu) (1/sqrt(Var*2*pi)) * exp(-0.5*(xleft-mu).^2/(Var));
-                    minf = @(mu) (1/(ensN + 1) - riemannsum(xleft, pdfl(mu))).^2;
-                    [muleft, ~] = fminunc(minf, xleft(end), options);
-                    prior_ht{1} = pdfl(muleft);
-                    
-                    pdfr = @(mu) (1/sqrt(Var*2*pi)) * exp(-0.5*(xright-mu).^2/(Var));
-                    minf = @(mu) (1/(ensN + 1) - riemannsum(xright, pdfr(mu))).^2;
-                    [muright, ~] = fminunc(minf, xright(1), options);
-                    prior_ht{length(xfs) + 1} = pdfr(muright);
-                elseif strcmp(obj.Tail, 'Flat') == 1
-                    prior_ht{1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
-                    prior_ht{length(xfs) + 1} = ones(1,discrete_pts)*1/((ensN+1) * gtl);
+                    muleft = xfs(1) - sqrt(2*Var)*erfinv(2/(ensN + 1) -1);
+                    muright = xfs(end) - sqrt(2*Var)*erfinv(1 - 2/(ensN + 1));
+                    mu = [muleft muright];
                 else
                     fprintf('Error! Gaussian tail not provided!\n');
                     return;
@@ -90,34 +82,30 @@ classdef RHF < datools.statistical.ensemble.EnF
                 ntemp = length(y(i));
                 likelihood = (diag((1/sqrt((2*pi)^ntemp*det(R(i,i)))) * ...
                     exp(-0.5*inn.'*(R(i,i)\inn)))).';
-                l_ht = cell(1, ensN + 1);
-                l_ht{1} = likelihood(1) * ones(1,length(prior_ht{1}));
-                l_ht{ensN+1} = likelihood(ensN) *...
-                    ones(1, length(prior_ht{ensN+1}));
-                for ii = 2:ensN
-                    l_ht{ii} = (likelihood(ii-1) + likelihood(ii))/2;
-                end
+                likelihood = likelihood/min(likelihood); % for scaling
+                l_ht = [likelihood(1), 0.5*(likelihood(ind1) + likelihood(ind2)), likelihood(end)];
                 
                 % find the posterior ht
-                post_ht = cell(1, ensN + 1);
-                for jj = 1:ensN+1
-                    post_ht{jj} = prior_ht{jj}.*l_ht{jj};
+                post_ht = zeros(1, ensN + 1);
+                for jj = 2:ensN
+                    post_ht(jj) = prior_ht(jj).*l_ht(jj);
                 end
                 
                 % find total area to normalize
-                area = zeros(1, ensN+1);
-                area(1) = riemannsum(xleft, post_ht{1});
-                area(ensN+1) = riemannsum(xright, post_ht{ensN+1});
+                area = [l_ht(1) * 0.5 * (1 + erf((xfs(1) - muleft)/(sqrt(2*Var)))),...
+                    (xfs(ind2) - xfs(ind1)).*(post_ht(2:end-1)),...
+                    l_ht(end).*(1 - 0.5*(1 + erf((xfs(end) - muright)/(sqrt(2*Var)))))];
+                ta = sum(area);
+                area = area/ta;
                 
-                for kk = 2:ensN
-                    area(kk) = post_ht{kk} * abs(xfs(kk) - xfs(kk-1));
-                end
-                for ll = 1:ensN+1
-                    post_ht{ll} = post_ht{ll}/sum(area);
-                end
-                area = area/sum(area);
+                post_ht = post_ht/ta;
+                
+                
+                % find scaling actors for the tails
+                tailscale = [l_ht(1) l_ht(end)];
+                tailscale = tailscale/ta;
                 % find the updated posterior points/particles
-                tempa = findpos(post_ht, ensN, area, xfs, xleft, xright);
+                tempa = findpos(post_ht, ensN, area, xfs, tailscale, Var, mu);
                 %[val, in2] = sort(sortin);
                 xas(i,:) = tempa(sortin);
             end
@@ -132,7 +120,7 @@ classdef RHF < datools.statistical.ensemble.EnF
     %end of class
 end
 
-function pts = findpos(post_ht, ensN, area, xfs, xleft, xright)
+function pts = findpos(post_ht, ensN, area, xfs, tailscale, V, mu)
 pts = zeros(1,ensN);
 for i =1:ensN
     temp = area;
@@ -143,11 +131,11 @@ for i =1:ensN
             temp(j) = 0;
         else
             if j == 1
-                pts(i) = riemannsearch(xleft, post_ht{1}, A);
+                pts(i) = sqrt(2*V)*erfinv(2*(A/tailscale(1)) - 1) + mu(1);
             elseif j == ensN+1
-                pts(i) = riemannsearch(xright, post_ht{ensN+1}, A);
+                pts(i) = sqrt(2*V)*erfinv(1 - 2*(A/tailscale(2))) + mu(2);
             else
-                pts(i) = xfs(j-1) + A/post_ht{j};
+                pts(i) = xfs(j-1) + A/post_ht(j);
                 %temp(j) = temp(j) - A;
             end
             break;
