@@ -1,4 +1,4 @@
-classdef Nonlinear < csl.datools.observation.Observation
+classdef Nonlinear < datools.observation.Observation
     
     properties
         F
@@ -18,7 +18,7 @@ classdef Nonlinear < csl.datools.observation.Observation
             
             s = p.Results;
             
-            obj@csl.datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.Observation(nvars, p.Unmatched);
             
             obj.F = s.F;
             %obj.J = s.J;
