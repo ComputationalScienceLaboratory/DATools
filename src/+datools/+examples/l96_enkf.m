@@ -217,8 +217,8 @@ for runn = runsleft.'
     rw = numel(infs) - 1 - floor((runn-1)/numel(ensNs));
     cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
     figure(f1);
-    %set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
-    %set(gca, 'XTickLabel', ensNs);
+    set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
+    set(gca, 'XTickLabel', ensNs);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs) + cl);
     hold all;
     z = enkf.RankValue(1,1:end-1);
