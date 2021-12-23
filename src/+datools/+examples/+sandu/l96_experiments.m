@@ -27,7 +27,7 @@ rejs = 2 * logspace(-2, -1, 4);
 rejs = round(rejs, 2);
 
 % define steps and spinups
-spinup = 50;
+spinup = 500;
 times = 11 * spinup;
 
 % localization radius
