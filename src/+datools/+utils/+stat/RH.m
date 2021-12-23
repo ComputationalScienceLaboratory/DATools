@@ -15,8 +15,6 @@ var = length(model.RankHistogram);
 xf = model.Ensemble;
 [~, ensN] = size(xf);
 
-%rankVal = zeros(length(var), ensN+2);
-
 for i = 1:var
     tempVar = model.RankHistogram(i);
     model.RankValue(i, ensN+2) = tempVar;

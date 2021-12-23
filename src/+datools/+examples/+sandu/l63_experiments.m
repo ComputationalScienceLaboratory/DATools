@@ -24,7 +24,7 @@ rejs = 2 * logspace(-2, -1, 4);
 rejs = round(rejs, 2);
 
 % define steps and spinups
-spinup = 50;
+spinup = 500;
 times = 11 * spinup;
 
 % Mention the location and name to save (change this)(uncomment the last line)
@@ -48,7 +48,7 @@ end
 fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n', ...
     filtername, variance, times, spinup);
 % time steps
-Delta_t = 0.12;
+Dt = 0.12;
 
 % Time Stepping Methods (Use ode45 or write your own)
 solvermodel = @(f, t, y) ode45(f, t, y);
@@ -57,10 +57,10 @@ solvernature = @(f, t, y) ode45(f, t, y);
 % Define ODE (using OTP)
 natureODE = otp.lorenz63.presets.Canonical;
 nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
-natureODE.TimeSpan = [0, Delta_t];
+natureODE.TimeSpan = [0, Dt];
 
 modelODE = otp.lorenz63.presets.Canonical;
-modelODE.TimeSpan = [0, Delta_t];
+modelODE.TimeSpan = [0, Dt];
 
 % Propogate the model
 [tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
@@ -79,7 +79,7 @@ naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
 observeindicies = 1:1:natureODE.NumVars;
 nobsvars = numel(observeindicies);
 
-R = variance * (1 / 1) * speye(nobsvars);
+R = variance * speye(nobsvars);
 
 % Observaton model (Gaussian here)
 obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
@@ -202,7 +202,7 @@ for runn = runsleft.'
 
         rmse = nan;
         ps = '';
-        do_filter = true;
+        dofilter = true;
 
         rmstempval = NaN * ones(1, times-spinup);
 
@@ -211,7 +211,7 @@ for runn = runsleft.'
             % forecast/evolve the model
             nature.evolve();
 
-            if do_filter
+            if dofilter
                 filter.forecast();
             end
 
@@ -225,11 +225,11 @@ for runn = runsleft.'
             % analysis
 
             % try
-            if do_filter
+            if dofilter
                 filter.analysis(R, y);
             end
             %catch
-            %    do_enkf = false;
+            %    dofilter = false;
             %end
 
             xa = filter.BestEstimate;
@@ -244,11 +244,11 @@ for runn = runsleft.'
                 rmstempval(i - spinup) = rmse;
 
                 %                 if rmse > maxallowerr || isnan(rmse) || mses(i - spinup) > 2*maxallowerr
-                %                     do_enkf = false;
+                %                     dofilter = false;
                 %                 end
             end
 
-            if ~do_filter
+            if ~dofilter
                 break;
             end
 
@@ -259,7 +259,7 @@ for runn = runsleft.'
             rmse = 1000;
         end
 
-        if ~do_filter
+        if ~dofilter
             sE(sample) = 1000;
         else
             sE(sample) = rmse;

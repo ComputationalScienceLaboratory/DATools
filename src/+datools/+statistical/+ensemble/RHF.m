@@ -30,10 +30,6 @@ classdef RHF < datools.statistical.ensemble.EnF
             inflation = obj.Inflation;
             tc = obj.Model.TimeSpan(1);
 
-            % define length of gaussian tail (not needed now)
-            %gtl = obj.Truncate;
-            %discrete_pts = obj.DiscretePoint;
-
             % get the current ensemble forecast
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -79,28 +75,27 @@ classdef RHF < datools.statistical.ensemble.EnF
                     muright = xfs(end) - sqrt(2*Var) * erfinv(1-2/(ensN + 1));
                     mu = [muleft, muright];
                 else
-                    fprintf('Error! Only Gaussian Tail is supported as of now!\n');
-                    return;
+                    error('Only Gaussian Tail is supported as of now');
                 end
 
                 % calculate the likelihood for this state
-                innovation = y(i) - sort(Hxf(i, :));
+                d = y(i) - sort(Hxf(i, :));
                 ntemp = length(y(i));
                 likelihood = (diag((1 / sqrt((2 * pi)^ntemp*R(i, i)))* ...
-                    exp(-0.5*innovation.'*(R(i, i) \ innovation)))).';
+                    exp(-0.5*d.'*(R(i, i) \ d)))).';
                 likelihood = likelihood / min(likelihood); % for scaling
-                likelihoodht = [likelihood(1), 0.5 * (likelihood(ind1) + likelihood(ind2)), likelihood(end)];
+                likelihood = [likelihood(1), 0.5 * (likelihood(ind1) + likelihood(ind2)), likelihood(end)];
 
                 % find the posterior ht
                 postht = zeros(1, ensN+1);
                 for jj = 2:ensN
-                    postht(jj) = priorht(jj) .* likelihoodht(jj);
+                    postht(jj) = priorht(jj) .* likelihood(jj);
                 end
 
                 % find total area to normalize everything
-                area = [likelihoodht(1) * 0.5 * (1 + erf((xfs(1) - muleft)/(sqrt(2*Var)))), ...
+                area = [likelihood(1) * 0.5 * (1 + erf((xfs(1) - muleft)/(sqrt(2*Var)))), ...
                     (xfs(ind2) - xfs(ind1)) .* (postht(2:end-1)), ...
-                    likelihoodht(end) .* (1 - 0.5 * (1 + erf((xfs(end) - muright)/(sqrt(2*Var)))))];
+                    likelihood(end) .* (1 - 0.5 * (1 + erf((xfs(end) - muright)/(sqrt(2*Var)))))];
                 % find total sum of area
                 ta = sum(area);
                 % Normalize the area
@@ -110,11 +105,10 @@ classdef RHF < datools.statistical.ensemble.EnF
                 postht = postht / ta;
 
                 % find scaling factors for the tails
-                tailscale = [likelihoodht(1), likelihoodht(end)];
+                tailscale = [likelihood(1), likelihood(end)];
                 tailscale = tailscale / ta;
                 % find the updated posterior points/particles
                 tempa = findpos(postht, ensN, area, xfs, tailscale, Var, mu);
-                %[val, in2] = sort(sortin);
                 xas(i, :) = tempa(sortin);
             end
             % end of function
@@ -128,7 +122,7 @@ classdef RHF < datools.statistical.ensemble.EnF
     %end of class
 end
 
-function pts = findpos(post_ht, ensN, area, xfs, tailscale, V, mu)
+function pts = findpos(postht, ensN, area, xfs, tailscale, V, mu)
 pts = zeros(1, ensN);
 for i = 1:ensN
     temp = area;
@@ -143,7 +137,7 @@ for i = 1:ensN
             elseif j == ensN + 1
                 pts(i) = sqrt(2*V) * erfinv(1-2*(A / tailscale(2))) + mu(2);
             else
-                pts(i) = xfs(j-1) + A / post_ht(j);
+                pts(i) = xfs(j-1) + A / postht(j);
             end
             break;
         end
