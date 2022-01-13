@@ -35,45 +35,6 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function forecast(obj)
-
-            times = zeros(obj.NumEnsemble, 1);
-
-            if obj.Parallel
-                rhs = obj.Model.ODEModel.Rhs.F;
-                tspan = obj.Model.TimeSpan;
-                solver = obj.Model.Solver;
-                ens    = obj.Ensemble;
-                ensN   = obj.NumEnsemble;
-
-                parfor ensi = 1:ensN
-
-                    [t, y] = solver(rhs, tspan, ens(:, ensi));
-
-                    time = t(end) - t(1);
-                    yend = y(end, :).';
-
-                    ens(:, ensi) = yend;
-                    times(ensi) = time;
-                end
-
-                for ensi = 1:ensN
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), ens(:, ensi));
-                end
-
-            else
-                for ensi = 1:obj.NumEnsemble
-                    [time, yend] = obj.Model.solve([], obj.Ensemble(:, ensi));
-
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), yend);
-                    times(ensi) = time;
-                end
-            end
-
-            obj.Model.update(mean(times), obj.BestEstimate);
-
-        end
-
         function analysis(obj, R, y)
 
 
