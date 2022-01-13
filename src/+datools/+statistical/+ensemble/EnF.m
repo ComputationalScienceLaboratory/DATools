@@ -160,9 +160,9 @@ classdef EnF < handle
                 A = (Xf - mean(Xf, 2)) / sqrt(ensN-1);
                 vs = sqrt(sum(A.^2, 2));
 
-                Xi = sqrt(tau) * vs .* rand(n, ensN);
+                Xi = sqrt(tau) * vs .* randn(n, ensN);
                 Xi = Xi - mean(Xi, 2);
-
+    
                 X = X + Xi;
             else
                 P = sqrt(tau/(ensN - 1)) * (eye(ensN) - ones(ensN) / ensN) * randn(ensN) * (eye(ensN) - ones(ensN) / ensN);

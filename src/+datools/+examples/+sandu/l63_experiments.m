@@ -14,17 +14,17 @@ filtername = 'EnKF';
 variance = 1;
 
 % create an aray of ensemble
-ensNs = [25, 50, 75, 100];
+ensNs = [25, 50, 75];
 
 % create an array of inflation
-infs = [1.01, 1.02, 1.05, 1.10];
+infs = [1.01, 1.02, 1.05];
 
 % create an array of rejuvination
 rejs = 2 * logspace(-2, -1, 4);
 rejs = round(rejs, 2);
 
 % define steps and spinups
-spinup = 500;
+spinup = 50;
 times = 11 * spinup;
 
 % Mention the location and name to save (change this)(uncomment the last line)
@@ -407,8 +407,10 @@ for runn = runsleft.'
     plot(spinup+1:1:times, rmstempval);
     xlim([spinup + 1, times]);
     ylim([0, 1]);
-    set(gca, 'XTick', [spinup + 1, times])
-    set(gca, 'XTickLabel', [spinup + 1, times])
+    set(gca, 'XTick', [spinup + 1, times]);
+    set(gca, 'XTickLabel', [spinup + 1, times]);
+    set(gca, 'YTick', [0, 1]);
+    set(gca, 'YTickLabel', [0, 1]);
     han = axes(f4, 'visible', 'off');
     han.Title.Visible = 'on';
     han.XLabel.Visible = 'on';
@@ -419,7 +421,6 @@ for runn = runsleft.'
     drawnow;
 
 end
-
 
 %save(fullfile(savdir));
 return;
