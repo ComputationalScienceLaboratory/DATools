@@ -19,7 +19,7 @@ clear all; close all; clc;
 %% User inputs
 user.modelname = 'Lorenz63';
 
-user.filtername = 'ETPF';
+user.filtername = 'EnKF';
 
 user.ensNs = [25, 50, 75, 100];
 
