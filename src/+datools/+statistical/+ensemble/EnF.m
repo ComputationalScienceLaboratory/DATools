@@ -5,9 +5,9 @@ classdef EnF < handle
     % passed by reference.
 
     properties
-        Model % ODE type
+        Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
         ModelError % type err
-        Observation
+        Observation % type of obervation
         Ensemble % current ensemble values for all the states
         Weights % Weight of each particle/ensemble
         Inflation % inflation constant
@@ -15,8 +15,8 @@ classdef EnF < handle
         Localization % A boolean if localization needs to be used
         Parallel % A boolean if parallel threads are to be implemented
         RankHistogram % State variables for which RH is needed
-        RankValue % store the RH values
-        ResamplingThreshold % threshold below which resampling neds to be done
+        RankValue % store the RH values for each state variables required
+        ResamplingThreshold % threshold below which resampling needs to be done
     end
 
     properties (Dependent)
@@ -33,7 +33,7 @@ classdef EnF < handle
 
     methods
         function obj = EnF(varargin)
-            % The constructor initializes the properties/attributes
+            % EnF  The constructor initializes the properties/attributes
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
@@ -79,9 +79,7 @@ classdef EnF < handle
         end
 
         function forecast(obj)
-            % Description:
-            % Method to propagate the model forward in time and update the
-            % ensembles accordingly
+            % forecast Method to propagate the model forward in time and
             %
             % INPUT PARAMETERS:
             % obj : reference to the object of this class/ derived class
@@ -129,8 +127,8 @@ classdef EnF < handle
 
 
         function ensN = get.NumEnsemble(obj)
-            % Method to get the number of ensembles (a getter method). A
-            % getter method is used for dependent properties
+            % get.NumEnsemble   Method to get the number of ensembles (a getter method).
+            %                   A getter method is used for dependent properties
             %
             % INPUT PARAMETERS:
             % obj : reference to the object of this class/derived class
@@ -150,7 +148,7 @@ classdef EnF < handle
             % ensembles with its current value.
             %
             % INPUT PARAMETERS:
-            % obj: reference to the object of this class/derived class
+            % obj : reference to the object of this class/derived class
             %
             % OUTPUT PARAMETERS:
             % x : current ensemble values
@@ -161,10 +159,10 @@ classdef EnF < handle
 
 
         function setMean(obj, xam)
-            % Method to set the mean of the ensembles, if required
+            % setMean   Method to set the mean of the ensembles, if required
             %
             % INPUT PARAMETERS:
-            % obj: reference to the object of this class/derived class
+            % obj : reference to the object of this class/derived class
             %
             % OUTPUT PARAMETERS:
             % Null
@@ -179,11 +177,11 @@ classdef EnF < handle
         end
 
         function scaleAnomalies(obj, scale)
-            % Method to scale the anomalies of the ensembles, if required
+            % scaleAnomalies  Method to scale the anomalies of the ensembles, if required
             %
             % INPUT PARAMETERS:
-            % obj: reference to the object of this class/derived class
-            % scale: scaling factor
+            % obj : reference to the object of this class/derived class
+            % scale : scaling factor
             %
             % OUTPUT PARAMETERS:
             % Null
@@ -198,18 +196,19 @@ classdef EnF < handle
         end
 
         function rejuvenate(obj, tau, Xf)
-            % To reduce particle degeneracy, rejuvenation is equivalent to
-            % adding random noise (in the form of random combination of
-            % background anomalies) to the transformation matrix. Give
-            % appropriate reference to notes and ETPF.
+            % rejuvenate  To reduce particle degeneracy, rejuvenation is equivalent to
+            %             adding random noise (in the form of random combination of
+            %             background anomalies) to the transformation matrix. Give
+            %             appropriate reference to notes and ETPF (to be done).
             %
             % INPUT PARAMETERS:
-            % obj: reference to the object of this class/derived class
-            % tau: rejuvenation bandwidth
-            % xf: forecast/background information
+            % obj : reference to the object of this class/derived class
+            % tau : rejuvenation bandwidth
+            % xf : forecast/background information
             %
             % OUTPUT PARAMETERS:
             % Null
+
             X = obj.Ensemble;
             [n, ensN] = size(X);
 
@@ -222,7 +221,8 @@ classdef EnF < handle
 
                 X = X + Xi;
             else
-                P = sqrt(tau/(ensN - 1)) * (eye(ensN) - ones(ensN) / ensN) * randn(ensN) * (eye(ensN) - ones(ensN) / ensN);
+                P = sqrt(tau/(ensN - 1)) * (eye(ensN) - ones(ensN) / ensN) ...
+                    * randn(ensN) * (eye(ensN) - ones(ensN) / ensN);
                 X = X + Xf * P;
             end
 

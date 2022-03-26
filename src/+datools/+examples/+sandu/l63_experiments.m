@@ -1,36 +1,34 @@
-clear all; close all;
+clear all; close all; clc;
 
 %% Preprocessing(User Inputs)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use this to run Lorenz 63 experiments
-
+modelname = 'Lorenz63';
 % uncomment the filter you want to run
-filtername = 'EnKF';
+%filtername = 'EnKF';
 %filtername = 'ETKF';
 %filtername = 'ETPF';
 %filtername = 'SIR';
-%filtername = 'RHF';
+filtername = 'RHF';
 
 % oservation variance
 variance = 1;
 
 % create an aray of ensemble
-ensNs = [25, 50, 75];
+ensNs = [25, 50, 75, 100];
 
 % create an array of inflation
-infs = [1.01, 1.02, 1.05];
+infs = [1.01, 1.03, 1.05];
 
 % create an array of rejuvination
 rejs = 2 * logspace(-2, -1, 4);
 rejs = round(rejs, 2);
 
 % define steps and spinups
-spinup = 50;
-times = 11 * spinup;
-
-% Mention the location and name to save (change this)(uncomment the last line)
-savdir = '/home/abhinab93/Documents/experiments/Lorenz63/ETPF/l63ETPF.mat';
+spinup = 2;
+steps = 11 * spinup;
 
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% rank histogram for the 1st state only (for now)
 histvar = 1:1:1;
 % decide the type of filter
 switch filtername
@@ -46,7 +44,7 @@ switch filtername
         filtertype = 'Ensemble';
 end
 fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n', ...
-    filtername, variance, times, spinup);
+    filtername, variance, steps, spinup);
 % time steps
 Dt = 0.12;
 
@@ -63,7 +61,7 @@ modelODE = otp.lorenz63.presets.Canonical;
 modelODE.TimeSpan = [0, Dt];
 
 % Propogate the model
-[tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
+[tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 % initialize model
@@ -97,6 +95,12 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 serveindicies = 1:1:natureODE.NumVars;
 rmses = inf * ones(numel(ensNs), numel(infs));
 rhplotval = inf * ones(numel(ensNs), numel(infs));
+totalruns = 0;
+% save the necessary variables
+rmsvalmatrix = {};
+rankvalmatrix = {};
+xvalmatrix = {};
+polyvalmatrix = {};
 
 maxallowerr = 10;
 
@@ -108,10 +112,10 @@ end
 
 runsleft = find(rmses == inf);
 
-f1 = figure;
-f2 = figure;
-f3 = figure;
-f4 = figure;
+% f1 = figure;
+% f2 = figure;
+% f3 = figure;
+% f4 = figure;
 
 % total runs for all combinations of ensembles and inflation/rejuvenation
 for runn = runsleft.'
@@ -120,16 +124,16 @@ for runn = runsleft.'
             [ensNi, infi] = ind2sub([numel(ensNs), numel(infs)], runn);
             fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
             inflationAll = infs(infi);
+            ensN = ensNs(ensNi);
         case 'Particle'
             [ensNi, reji] = ind2sub([numel(ensNs), numel(rejs)], runn);
             fprintf('N: %d, rej: %.3f\n', ensNs(ensNi), rejs(reji));
             rejAll = rejs(reji);
+            ensN = ensNs(ensNi);
     end
 
     ns = 1;
     sE = zeros(ns, 1);
-
-    ensN = ensNs(ensNi);
 
     for sample = 1:ns
         % Set rng for standard experiments
@@ -198,16 +202,16 @@ for runn = runsleft.'
         filter.setMean(natureODE.Y0);
         filter.scaleAnomalies(1/10);
 
-        mses = zeros(times - spinup, 1);
+        mses = zeros(steps - spinup, 1);
 
         rmse = nan;
         ps = '';
         dofilter = true;
 
-        rmstempval = NaN * ones(1, times-spinup);
+        rmstempval = NaN * ones(1, steps-spinup);
 
         % Assimilation steps
-        for i = 1:times
+        for i = 1:steps
             % forecast/evolve the model
             nature.evolve();
 
@@ -223,7 +227,6 @@ for runn = runsleft.'
             datools.utils.stat.RH(filter, xt);
 
             % analysis
-
             % try
             if dofilter
                 filter.analysis(R, y);
@@ -253,7 +256,6 @@ for runn = runsleft.'
             end
 
         end
-        hold off;
 
         if isnan(rmse)
             rmse = 1000;
@@ -266,6 +268,7 @@ for runn = runsleft.'
         end
 
     end
+
     resE = mean(sE);
 
     if isnan(resE)
@@ -292,135 +295,18 @@ for runn = runsleft.'
     if mm >= maxallowerr
         mm = 0;
     end
+    
+    % update all the variables for plotting
+    rankvalmatrix{runn} = filter.RankValue(1, 1:end-1);
+    xvalmatrix{runn} = xs;
+    polyvalmatrix{runn} = pval;
+    rmsvalmatrix{runn} = rmstempval;
 
-    %% Post Processing(Plotting)
-    rw = numel(infs) - 1 - floor((runn - 1)/numel(ensNs));
-    cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
-
-
-    figure(f1);
-    subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-    hold all;
-    z = filter.RankValue(1, 1:end-1);
-    maxz = max(z);
-    z = z / sum(z);
-    NN = numel(z);
-    z = NN * z;
-    bar(xs, z);
-    plot(xs, pval, '-*r');
-    set(gca, 'XTick', [xs(1), xs(end)]);
-    set(gca, 'XTickLabel', [1, ensN + 1]);
-    set(gca, 'YTick', []);
-    set(gca, 'YTickLabel', []);
-    han = axes(f1, 'visible', 'off');
-    han.Title.Visible = 'on';
-    han.XLabel.Visible = 'on';
-    han.YLabel.Visible = 'on';
-    switch filtertype
-        case 'Ensemble'
-            ylabel(han, 'Inflation');
-        case 'Particle'
-            ylabel(han, 'Rejuvetion');
-    end
-    xlabel(han, 'Ensemble Size');
-    title(han, 'Rank Histogram');
-    drawnow;
-
-
-    figure(f2);
-    switch filtertype
-        case 'Ensemble'
-            imagesc(ensNs, infs, rmses.');
-            caxis([0, 1]);
-            colorbar;
-            set(gca, 'YDir', 'normal');
-            axis square;
-            title('Rmse HeatMap');
-            colormap('pink');
-            xlabel('Ensemble Size');
-            ylabel('Inflation')
-            set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-            set(gca, 'XTickLabel', ensNs);
-            set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-            set(gca, 'YTickLabel', infs);
-            drawnow;
-        case 'Particle'
-            imagesc(ensNs, rejs, rmses.');
-            caxis([0, 1]);
-            colorbar;
-            set(gca, 'YDir', 'normal');
-            axis square;
-            title('Rmse HeatMap');
-            colormap('pink');
-            xlabel('Ensemble Size');
-            ylabel('Rejuvetion');
-            set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-            set(gca, 'XTickLabel', ensNs);
-            set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-            set(gca, 'YTickLabel', rejs);
-            drawnow;
-    end
-
-    bn = bone;
-    pk = flipud(pink);
-    figure(f3);
-    map1 = bn;
-    map1 = map1(51:2:end-1, :);
-    map2 = pk;
-    map = [map1; map2(2:2:end-50, :)];
-    switch filtertype
-        case 'Ensemble'
-            imagesc(ensNs, infs, rhplotval.');
-            caxis([-0.1, 0.1]);
-            colorbar;
-            set(gca, 'YDir', 'normal');
-            set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-            set(gca, 'XTickLabel', ensNs);
-            set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-            set(gca, 'YTickLabel', infs);
-            axis square;
-            title('KLDiv');
-            colormap(map);
-            xlabel('Ensemble Size');
-            ylabel('Inflation');
-            drawnow;
-        case 'Particle'
-            imagesc(ensNs, rejs, rhplotval.');
-            caxis([-0.1, 0.1]);
-            colorbar;
-            set(gca, 'YDir', 'normal');
-            set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-            set(gca, 'XTickLabel', ensNs);
-            set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-            set(gca, 'YTickLabel', rejs);
-            axis square;
-            title('KLDiv');
-            colormap(map);
-            xlabel('Ensemble Size');
-            ylabel('Rejuvetion');
-            drawnow;
-    end
-
-
-    figure(f4);
-    subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-    plot(spinup+1:1:times, rmstempval);
-    xlim([spinup + 1, times]);
-    ylim([0, 1]);
-    set(gca, 'XTick', [spinup + 1, times]);
-    set(gca, 'XTickLabel', [spinup + 1, times]);
-    set(gca, 'YTick', [0, 1]);
-    set(gca, 'YTickLabel', [0, 1]);
-    han = axes(f4, 'visible', 'off');
-    han.Title.Visible = 'on';
-    han.XLabel.Visible = 'on';
-    han.YLabel.Visible = 'on';
-    ylabel(han, 'Value');
-    xlabel(han, 'Time Step');
-    title(han, 'RMSE');
-    drawnow;
-
+    totalruns = totalruns + 1;
 end
 
-%save(fullfile(savdir));
+filename = strcat(modelname, '_', filtername, '.mat');
+filepath = strcat(pwd, '\+datools\+examples\+sandu\', filename);
+save(filepath);
+datools.utils.plotexperiments(filepath);
 return;
