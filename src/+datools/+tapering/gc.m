@@ -21,7 +21,6 @@ end
 r = r.';
 
 for jr = 1:numel(I1)
-    
     j = I1(jr);
     
     ks1 = d(t, y, I2, j)./r(j);
