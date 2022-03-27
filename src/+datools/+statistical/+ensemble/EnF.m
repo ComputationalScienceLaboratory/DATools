@@ -1,6 +1,6 @@
 classdef EnF < handle
     % This is the base class for all statistical methods
-    % Derive from this class and overload methods/functions as required
+    % Derive from this class and implement methods/functions as required
     % Deriving from handle base class allows an object of this class to be
     % passed by reference.
 
@@ -25,9 +25,10 @@ classdef EnF < handle
     end
 
     methods (Abstract)
-        % this is the method that will be overloaded by child classes
+        % A method that will be implemented by child  classes to make
+        % approximate inference on ensembles of states by combining 
+        % prior forecast/background data with noisy observations
         analysis(obj, R, y)
-
     end
 
 
@@ -79,7 +80,7 @@ classdef EnF < handle
         end
 
         function forecast(obj)
-            % forecast Method to propagate the model forward in time and
+            % forecast Method to propagate the model forward in time 
             %
             % INPUT PARAMETERS:
             % obj : reference to the object of this class/ derived class
