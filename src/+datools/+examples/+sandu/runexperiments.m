@@ -1,49 +1,38 @@
-clear all; close all;
+function runexperiments(user)
+% model name
+modelname = user.modelname;
 
-%% User Inputs%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Use this to run Lorenz96 experiments
-modelname = 'Lorenz96';
-% uncomment the filter you want to run
-filtername = 'EnKF';
-%filtername = 'ETKF';
-%filtername = 'ETPF';
-%filtername = 'SIR';
-%filtername = 'LETKF';
-%filtername = 'RHF';
+% filtername
+filtername = user.filtername;
 
-%datools.statistical.ensemble.(filtername);
+% oservation variance
+variance = user.variance;
 
-% observation variance
-variance = 1;
+% Number of Ensembles in the model run
+ensNs = user.ensNs;
 
-% create an aray of ensemble
-ensNs = [50, 75, 100];
+% Inflation (if required)
+infs = user.infs;
 
-% create an array of inflation
-infs = [1.02, 1.05, 1.10];
+% Rejuvenation(if required)
+rejs = user.rejs;
 
-% create an array of rejuvination
-rejs = 2 * logspace(-2, -1, 4);
-rejs = round(rejs, 2);
+% Steps and Spinups
+spinup = user.spinups;
+steps = user.steps;
 
-% define steps and spinups
-spinup = 5;
-steps = 11 * spinup;
+% localization
+localize = user.localize;
 
-% localization radius
-r = 4; % rename this
-localize = true; % Change this if you need/not need localization
-
-%% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% rank histogram for the "i" states
+%% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% rank histogram for the 1st state only (for now)
 histvar = 1:1:1;
-%decide the type of filter
+
+% decide the type of filter
 switch filtername
     case 'EnKF'
         filtertype = 'Ensemble';
     case 'ETKF'
-        filtertype = 'Ensemble';
-    case 'LETKF'
         filtertype = 'Ensemble';
     case 'ETPF'
         filtertype = 'Particle';
@@ -54,19 +43,35 @@ switch filtername
 end
 fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n', ...
     filtername, variance, steps, spinup);
+
 % time steps
-Dt = 0.05;
+Dt = user.Dt;
 
 % Time Stepping Methods (Use ode45 or write your own)
-solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
-solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+odesolver = user.odesolver;
+switch odesolver
+    case 'ode45'
+        solvermodel = @(f, t, y) ode45(f, t, y);
+        solvernature = @(f, t, y) ode45(f, t, y);
+    case 'RK4'
+        solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+        solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+end
 
-% Define ODE
-natureODE = otp.lorenz96.presets.Canonical;
-nature0 = randn(natureODE.NumVars, 1);
+% Model
+switch modelname
+    case 'Lorenz63'
+        natureODE = otp.lorenz63.presets.Canonical;
+        modelODE = otp.lorenz63.presets.Canonical;
+    case 'Lorenz96'
+        natureODE = otp.lorenz96.presets.Canonical;
+        modelODE = otp.lorenz96.presets.Canonical;
+end
+
+nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
 natureODE.TimeSpan = [0, Dt];
 
-modelODE = otp.lorenz96.presets.Canonical;
+
 modelODE.TimeSpan = [0, Dt];
 
 % Propogate the model
@@ -78,7 +83,7 @@ model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
 % Observation Model
-naturetomodel = datools.observation.Linear(numel(nature0), 'H',...
+naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
 % observe these variables
@@ -105,6 +110,7 @@ serveindicies = 1:1:natureODE.NumVars;
 rmses = inf * ones(numel(ensNs), numel(infs));
 rhplotval = inf * ones(numel(ensNs), numel(infs));
 totalruns = 0;
+
 % save the necessary variables
 rmsvalmatrix = {};
 rankvalmatrix = {};
@@ -121,12 +127,7 @@ end
 
 runsleft = find(rmses == inf);
 
-% f1 = figure;
-% f2 = figure;
-% f3 = figure;
-% f4 = figure;
 
-% total runs for all combinations of ensembles and inflation/rejuvenation
 for runn = runsleft.'
     switch filtertype
         case 'Ensemble'
@@ -140,7 +141,6 @@ for runn = runsleft.'
             rejAll = rejs(reji);
             ensN = ensNs(ensNi);
     end
-
 
     ns = 1;
     sE = zeros(ns, 1);
@@ -157,7 +157,6 @@ for runn = runsleft.'
                 rejuvenation = rejAll;
                 inflation = 0;
         end
-
 
         if (localize)
             d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
@@ -186,8 +185,7 @@ for runn = runsleft.'
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Inflation', inflation, ...
                     'Parallel', false, ...
-                    'RankHistogram', histvar, ...
-                    'Rejuvenation', rejuvenation);
+                    'RankHistogram', histvar);
             case 'ETKF'
                 filter = datools.statistical.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
@@ -196,15 +194,13 @@ for runn = runsleft.'
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Inflation', inflation, ...
                     'Parallel', false, ...
-                    'RankHistogram', histvar, ...
-                    'Rejuvenation', rejuvenation);
-            case 'LETKF'
+                    'RankHistogram', histvar);
+            case 'ETPF'
                 filter = datools.statistical.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
                     'EnsembleGenerator', ensembleGenerator, ...
-                    'Inflation', inflation, ...
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
@@ -214,17 +210,6 @@ for runn = runsleft.'
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
                     'EnsembleGenerator', ensembleGenerator, ...
-                    'Inflation', inflation, ...
-                    'Parallel', false, ...
-                    'RankHistogram', histvar, ...
-                    'Rejuvenation', rejuvenation);
-            case 'ETPF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
-                    'Observation', observation, ...
-                    'NumEnsemble', ensN, ...
-                    'ModelError', modelerror, ...
-                    'EnsembleGenerator', ensembleGenerator, ...
-                    'Inflation', inflation, ...
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
@@ -238,6 +223,16 @@ for runn = runsleft.'
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Tail', 'Gaussian');
+            case 'LETKF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Inflation', inflation, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar, ...
+                    'Rejuvenation', rejuvenation);
 
         end
 
@@ -308,7 +303,7 @@ for runn = runsleft.'
         else
             sE(sample) = rmse;
         end
-
+        
     end
 
     resE = mean(sE);
@@ -330,14 +325,12 @@ for runn = runsleft.'
                 (1 / ensN)*ones(1, ensN+1));
     end
 
-
     mm = min(rmses(:));
     mm = 0;
 
     if mm >= maxallowerr
         mm = 0;
     end
-
 
     % update all the variables for plotting
     rankvalmatrix{runn} = filter.RankValue(1, 1:end-1);
@@ -346,136 +339,10 @@ for runn = runsleft.'
     rmsvalmatrix{runn} = rmstempval;
 
     totalruns = totalruns + 1;
-
-    %% Post Processing(Plotting)
-%     rw = numel(infs) - 1 - floor((runn - 1)/numel(ensNs));
-%     cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
-% 
-% 
-%     figure(f1);
-%     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-%     hold all;
-%     z = filter.RankValue(1, 1:end-1);
-%     maxz = max(z);
-%     z = z / sum(z);
-%     NN = numel(z);
-%     z = NN * z;
-%     bar(xs, z);
-%     plot(xs, pval, '-*r');
-%     set(gca, 'XTick', [xs(1), xs(end)]);
-%     set(gca, 'XTickLabel', [1, ensN + 1]);
-%     set(gca, 'YTick', []);
-%     set(gca, 'YTickLabel', []);
-%     han = axes(f1, 'visible', 'off');
-%     han.Title.Visible = 'on';
-%     han.XLabel.Visible = 'on';
-%     han.YLabel.Visible = 'on';
-%     switch filtertype
-%         case 'Ensemble'
-%             ylabel(han, 'Inflation');
-%         case 'Particle'
-%             ylabel(han, 'Rejuvetion');
-%     end
-%     xlabel(han, 'Ensemble Size');
-%     title(han, 'Rank Histogram');
-%     drawnow;
-% 
-% 
-%     figure(f2);
-%     switch filtertype
-%         case 'Ensemble'
-%             imagesc(ensNs, infs, rmses.');
-%             caxis([0, 1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             axis square;
-%             title('Rmse HeatMap');
-%             colormap('pink');
-%             xlabel('Ensemble Size');
-%             ylabel('Inflation')
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-%             set(gca, 'YTickLabel', infs);
-%             drawnow;
-%         case 'Particle'
-%             imagesc(ensNs, rejs, rmses.');
-%             caxis([0, 1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             axis square;
-%             title('Rmse HeatMap');
-%             colormap('pink');
-%             xlabel('Ensemble Size');
-%             ylabel('Rejuvetion');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-%             set(gca, 'YTickLabel', rejs);
-%             drawnow;
-%     end
-% 
-%     bn = bone;
-%     pk = flipud(pink);
-%     figure(f3);
-%     map1 = bn;
-%     map1 = map1(51:2:end-1, :);
-%     map2 = pk;
-%     map = [map1; map2(2:2:end-50, :)];
-%     switch filtertype
-%         case 'Ensemble'
-%             imagesc(ensNs, infs, rhplotval.');
-%             caxis([-0.1, 0.1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-%             set(gca, 'YTickLabel', infs);
-%             axis square;
-%             title('KLDiv');
-%             colormap(map);
-%             xlabel('Ensemble Size');
-%             ylabel('Inflation');
-%             drawnow;
-%         case 'Particle'
-%             imagesc(ensNs, rejs, rhplotval.');
-%             caxis([-0.1, 0.1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-%             set(gca, 'YTickLabel', rejs);
-%             axis square;
-%             title('KLDiv');
-%             colormap(map);
-%             xlabel('Ensemble Size');
-%             ylabel('Rejuvetion');
-%             drawnow;
-%     end
-% 
-% 
-%     figure(f4);
-%     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-%     plot(spinup+1:1:times, rmstempval);
-%     xlim([spinup + 1, times]);
-%     ylim([0, 1]);
-%     set(gca, 'XTick', [spinup + 1, times])
-%     set(gca, 'XTickLabel', [spinup + 1, times])
-%     han = axes(f4, 'visible', 'off');
-%     han.Title.Visible = 'on';
-%     han.XLabel.Visible = 'on';
-%     han.YLabel.Visible = 'on';
-%     ylabel(han, 'Value');
-%     xlabel(han, 'Time Step');
-%     title(han, 'RMSE');
-%     drawnow;
-
 end
 
 filename = strcat(modelname, '_', filtername, '.mat');
 filepath = strcat(pwd, '\+datools\+examples\+sandu\', filename);
 save(filepath);
 datools.utils.plotexperiments(filepath);
-return;
+end
