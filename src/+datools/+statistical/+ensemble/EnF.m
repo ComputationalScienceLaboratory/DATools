@@ -34,7 +34,12 @@ classdef EnF < handle
 
     methods
         function obj = EnF(varargin)
-            % EnF  The constructor initializes the properties/attributes
+            %ENF   The constructor initializes the properties/attributes
+            %
+            %   OBJ = ENF(VARARGIN) accepts variable length argument list 
+            %   VARARGIN and updates the properties/attributes of the object
+            %   (OBJ) of this class or a derived class
+
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
@@ -80,13 +85,10 @@ classdef EnF < handle
         end
 
         function forecast(obj)
-            % forecast Method to propagate the model forward in time 
+            %FORECAST Method to propagate the model forward in time 
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/ derived class
-            %
-            % OUTPUT PARAMETERS:
-            % NULL
+            %   FORECAST(OBJ) propoagates the model one step in time
+            %   using a user defined time integration method
 
             times = zeros(obj.NumEnsemble, 1);
 
@@ -128,14 +130,12 @@ classdef EnF < handle
 
 
         function ensN = get.NumEnsemble(obj)
-            % get.NumEnsemble   Method to get the number of ensembles (a getter method).
-            %                   A getter method is used for dependent properties
+            %GET.NUMENSEMBLES   Method to get the number of ensembles 
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/derived class
-            %
-            % OUTPUT PARAMETERS:
-            % ensN : number of ensemble members
+            %   ENSN = GET.NUMENSEMBLES(OBJ) uses an in-built getter method,
+            %   derived from handle class, to get the current number of
+            %   ensembles of states for objects of this class or a derived
+            %   class
 
             ensN = size(obj.Ensemble, 2);
 
@@ -143,16 +143,12 @@ classdef EnF < handle
 
 
         function x = get.BestEstimate(obj)
-            % Method to get the best estimates of Ensemble values. A getter
-            % method is used to derive the value of a dependent property.
-            % Current estimate is made by multiplying weight os each
-            % ensembles with its current value.
+            %GET.BESTESTIMATE Method to estimate of ensemble values
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/derived class
-            %
-            % OUTPUT PARAMETERS:
-            % x : current ensemble values
+            %   X = GET.BESTESTIMATE(OBJ) uses an in-built getter method,
+            %   derived from handle class, to return the best estimate of
+            %   the information from the current ensembles of states and
+            %   its corresponding weights
 
             x = obj.Ensemble * obj.Weights;
 
@@ -160,13 +156,10 @@ classdef EnF < handle
 
 
         function setMean(obj, xam)
-            % setMean   Method to set the mean of the ensembles, if required
+            %SETMEAN   Method to set the mean of the ensembles, if required
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/derived class
-            %
-            % OUTPUT PARAMETERS:
-            % Null
+            %   SETMEAN(OBJ, XAM) sets the mean of the ensembles of states
+            %   of the object of this class or a derived class to XAM
 
             X = obj.Ensemble;
             ensN = size(X, 2);
@@ -178,14 +171,10 @@ classdef EnF < handle
         end
 
         function scaleAnomalies(obj, scale)
-            % scaleAnomalies  Method to scale the anomalies of the ensembles, if required
+            % SCALEANOMALIES  Method to scale the anomalies of the ensembles
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/derived class
-            % scale : scaling factor
-            %
-            % OUTPUT PARAMETERS:
-            % Null
+            %   SCALEANOMALIES(OBJ, SCALE) scales the unbiased current 
+            %   ensembles of state using the scaling factor SCALE
 
             X = obj.Ensemble;
             ensN = size(X, 2);
@@ -197,18 +186,16 @@ classdef EnF < handle
         end
 
         function rejuvenate(obj, tau, Xf)
-            % rejuvenate  To reduce particle degeneracy, rejuvenation is equivalent to
+            % REJUVENATE  To reduce particle degeneracy, rejuvenation is equivalent to
             %             adding random noise (in the form of random combination of
             %             background anomalies) to the transformation matrix. Give
             %             appropriate reference to notes and ETPF (to be done).
             %
-            % INPUT PARAMETERS:
-            % obj : reference to the object of this class/derived class
-            % tau : rejuvenation bandwidth
-            % xf : forecast/background information
-            %
-            % OUTPUT PARAMETERS:
-            % Null
+            %   REJUVENATE(OBJ, TAU, XF) adds a random noise in the form of
+            %   random combination of background anomalies of the ensembles
+            %   of states (using rejuvenation bandwidth TAU) to the 
+            %   transformation matrix. This matrix is used to rejuvenate
+            %   the collasping states XF and prevent particle degeneracy
 
             X = obj.Ensemble;
             [n, ensN] = size(X);
