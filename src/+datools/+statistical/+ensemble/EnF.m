@@ -186,10 +186,7 @@ classdef EnF < handle
         end
 
         function rejuvenate(obj, tau, Xf)
-            % REJUVENATE  To reduce particle degeneracy, rejuvenation is equivalent to
-            %             adding random noise (in the form of random combination of
-            %             background anomalies) to the transformation matrix. Give
-            %             appropriate reference to notes and ETPF (to be done).
+            % REJUVENATE  To reduce particle degeneracy
             %
             %   REJUVENATE(OBJ, TAU, XF) adds a random noise in the form of
             %   random combination of background anomalies of the ensembles
