@@ -52,9 +52,6 @@ for runn = 1:totalruns
         a.FontWeight = 'demi';
     end
 
-    
-    
-
 
     figure(f2);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);

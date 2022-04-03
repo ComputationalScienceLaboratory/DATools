@@ -26,7 +26,7 @@ classdef EnF < handle
 
     methods (Abstract)
         % A method that will be implemented by child  classes to make
-        % approximate inference on ensembles of states by combining 
+        % approximate inference on ensembles of states by combining
         % prior forecast/background data with noisy observations
         analysis(obj, R, y)
     end
@@ -36,7 +36,7 @@ classdef EnF < handle
         function obj = EnF(varargin)
             %ENF   The constructor initializes the properties/attributes
             %
-            %   OBJ = ENF(VARARGIN) accepts variable length argument list 
+            %   OBJ = ENF(VARARGIN) accepts variable length argument list
             %   VARARGIN and updates the properties/attributes of the object
             %   (OBJ) of this class or a derived class
 
@@ -85,7 +85,7 @@ classdef EnF < handle
         end
 
         function forecast(obj)
-            %FORECAST Method to propagate the model forward in time 
+            %FORECAST Method to propagate the model forward in time
             %
             %   FORECAST(OBJ) propoagates the model one step in time
             %   using a user defined time integration method
@@ -130,7 +130,7 @@ classdef EnF < handle
 
 
         function ensN = get.NumEnsemble(obj)
-            %GET.NUMENSEMBLES   Method to get the number of ensembles 
+            %GET.NUMENSEMBLES   Method to get the number of ensembles
             %
             %   ENSN = GET.NUMENSEMBLES(OBJ) uses an in-built getter method,
             %   derived from handle class, to get the current number of
@@ -173,7 +173,7 @@ classdef EnF < handle
         function scaleAnomalies(obj, scale)
             % SCALEANOMALIES  Method to scale the anomalies of the ensembles
             %
-            %   SCALEANOMALIES(OBJ, SCALE) scales the unbiased current 
+            %   SCALEANOMALIES(OBJ, SCALE) scales the unbiased current
             %   ensembles of state using the scaling factor SCALE
 
             X = obj.Ensemble;
@@ -193,7 +193,7 @@ classdef EnF < handle
             %
             %   REJUVENATE(OBJ, TAU, XF) adds a random noise in the form of
             %   random combination of background anomalies of the ensembles
-            %   of states (using rejuvenation bandwidth TAU) to the 
+            %   of states (using rejuvenation bandwidth TAU) to the
             %   transformation matrix. This matrix is used to rejuvenate
             %   the collasping states XF and prevent particle degeneracy
 

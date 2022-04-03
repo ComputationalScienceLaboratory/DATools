@@ -8,23 +8,23 @@ xs = zeros(nr, addpoints);
 ys = zeros(nr, addpoints);
 
 for mui = 1:nr
-    
+
     r = rs(mui);
-    
+
     tenterror = datools.error.Logistic('R', r, 'Scale', 1);
-    
+
     % initial evolve
     for i = 1:initialevolve
         tenterror.adderr(0, 0);
     end
-    
+
     % add points
     for i = 1:addpoints
         y = tenterror.adderr(0, 0.5);
         xs(mui, i) = r;
         ys(mui, i) = y;
     end
-    
+
 end
 
 p = scatter(xs(:), ys(:), 1, '.k');
