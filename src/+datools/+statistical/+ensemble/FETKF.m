@@ -26,8 +26,8 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
 
-            obj.B      = s.B;
-            obj.Bsqrt  = s.Bsqrt;
+            obj.B = s.B;
+            obj.Bsqrt = s.Bsqrt;
             obj.BsqrtD = decomposition(obj.Bsqrt, 'chol');
 
             obj.SurrogateEnsN = s.SurrogateEnsembleSize;
@@ -52,12 +52,12 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             Af = xf - repmat(xfm, 1, ensN);
 
-            Af = inflation*Af;
+            Af = inflation * Af;
 
             Bs = obj.Bsqrt;
             BsD = obj.BsqrtD;
 
-            s = svd(BsD\Af/sqrt(ensN - 1));
+            s = svd(BsD \ Af/sqrt(ensN-1));
             trBPf = sum(s.^2);
             trBPf2 = sum(s.^4);
 
@@ -65,13 +65,13 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             if isempty(obj.Gamma)
                 % RBLW
-                gamma = min((((ensNN - 2)/ensNN) * trBPf2 + trBPf^2)/((ensNN + 2)*(trBPf2 - (1/n)*trBPf^2)), 1);
+                gamma = min((((ensNN - 2) / ensNN) * trBPf2 + trBPf^2)/((ensNN + 2) * (trBPf2 - (1 / n) * trBPf^2)), 1);
                 % OAS
                 %gamma = max(min(( (1 - 2/n)*trBPf2 + trBPf^2 )/( (ensNN + 1 - 2/n)*(trBPf2 - (trBPf^2)/n) ), 1), 0);
             else
                 gamma = obj.Gamma;
             end
-            mu = trBPf/n;
+            mu = trBPf / n;
 
             ensNW = obj.SurrogateEnsN;
 
@@ -82,31 +82,31 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
 
-            Afs = sqrt(1 - gamma)*Af/sqrt(ensN - 1);
+            Afs = sqrt(1-gamma) * Af / sqrt(ensN-1);
 
-            w = sqrt(mu)*Bs*randn(n, ensNW);
+            w = sqrt(mu) * Bs * randn(n, ensNW);
             w = w - repmat(mean(w, 2), 1, ensNW);
-            ws = sqrt(gamma)*w/sqrt(ensNW - 1);
+            ws = sqrt(gamma) * w / sqrt(ensNW-1);
 
-            Hw = obj.Observation.observeWithoutError(tc, w + repmat(xfm, 1, ensNW));
+            Hw = obj.Observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
             Hwm = mean(Hw, 2);
             HAw = Hw - repmat(Hwm, 1, ensNW);
 
-            ZA = sqrt(1-gamma)*HAf/sqrt(ensN - 1);
-            Zw = sqrt(gamma)*HAw/sqrt(ensNW - 1);
+            ZA = sqrt(1-gamma) * HAf / sqrt(ensN-1);
+            Zw = sqrt(gamma) * HAw / sqrt(ensNW-1);
 
-            S = ZA*ZA' + Zw*Zw' + R;
+            S = ZA * ZA' + Zw * Zw' + R;
 
             ZZ = [ZA, Zw];
 
-            TT = (eye(ensN + ensNW) - ZZ.'/S*ZZ);
+            TT = (eye(ensN+ensNW) - ZZ.' / S * ZZ);
 
             d = y - Hxfm;
 
-            AAa = [Afs, ws]*real(sqrtm(TT));
-            Aa = sqrt(ensN - 1)*AAa(:, 1:ensN)/sqrt(1-gamma);
+            AAa = [Afs, ws] * real(sqrtm(TT));
+            Aa = sqrt(ensN-1) * AAa(:, 1:ensN) / sqrt(1-gamma);
 
-            xam = xfm + ([Afs, ws]*TT*ZZ.')/R*d;
+            xam = xfm + ([Afs, ws] * TT * ZZ.') / R * d;
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
 

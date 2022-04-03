@@ -1,6 +1,6 @@
 function [x] = gd(costfn, x, maxits, gtol, xtol, sc)
 
-if nargin < 3  || isempty(maxits)
+if nargin < 3 || isempty(maxits)
     maxits = 1024;
 end
 
@@ -23,16 +23,16 @@ k = 0;
 
 
 while k < maxits && norm(g) > gtol && norm(p) > xtol && ~sc(x)
-    
+
     alpha = csl.utils.armijowolfe(costfn, x, p, g);
-    
-    x = x + alpha*p;
-    
+
+    x = x + alpha * p;
+
     k = k + 1;
-    
+
     [~, g] = costfn(x);
     p = -g;
-    
+
 end
 
 end

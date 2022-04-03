@@ -239,7 +239,7 @@ for runn = runsleft.'
         filter.setMean(natureODE.Y0);
         filter.scaleAnomalies(1/10);
 
-        mses = zeros(steps - spinup, 1);
+        mses = zeros(steps-spinup, 1);
 
         rmse = nan;
         ps = '';
@@ -303,7 +303,7 @@ for runn = runsleft.'
         else
             sE(sample) = rmse;
         end
-        
+
     end
 
     resE = mean(sE);

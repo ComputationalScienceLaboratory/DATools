@@ -78,7 +78,7 @@ model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
 % Observation Model
-naturetomodel = datools.observation.Linear(numel(nature0), 'H',...
+naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
 % observe these variables
@@ -244,7 +244,7 @@ for runn = runsleft.'
         filter.setMean(natureODE.Y0);
         filter.scaleAnomalies(1/10);
 
-        mses = zeros(steps - spinup, 1);
+        mses = zeros(steps-spinup, 1);
 
         rmse = nan;
         ps = '';
@@ -348,129 +348,129 @@ for runn = runsleft.'
     totalruns = totalruns + 1;
 
     %% Post Processing(Plotting)
-%     rw = numel(infs) - 1 - floor((runn - 1)/numel(ensNs));
-%     cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
-% 
-% 
-%     figure(f1);
-%     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-%     hold all;
-%     z = filter.RankValue(1, 1:end-1);
-%     maxz = max(z);
-%     z = z / sum(z);
-%     NN = numel(z);
-%     z = NN * z;
-%     bar(xs, z);
-%     plot(xs, pval, '-*r');
-%     set(gca, 'XTick', [xs(1), xs(end)]);
-%     set(gca, 'XTickLabel', [1, ensN + 1]);
-%     set(gca, 'YTick', []);
-%     set(gca, 'YTickLabel', []);
-%     han = axes(f1, 'visible', 'off');
-%     han.Title.Visible = 'on';
-%     han.XLabel.Visible = 'on';
-%     han.YLabel.Visible = 'on';
-%     switch filtertype
-%         case 'Ensemble'
-%             ylabel(han, 'Inflation');
-%         case 'Particle'
-%             ylabel(han, 'Rejuvetion');
-%     end
-%     xlabel(han, 'Ensemble Size');
-%     title(han, 'Rank Histogram');
-%     drawnow;
-% 
-% 
-%     figure(f2);
-%     switch filtertype
-%         case 'Ensemble'
-%             imagesc(ensNs, infs, rmses.');
-%             caxis([0, 1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             axis square;
-%             title('Rmse HeatMap');
-%             colormap('pink');
-%             xlabel('Ensemble Size');
-%             ylabel('Inflation')
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-%             set(gca, 'YTickLabel', infs);
-%             drawnow;
-%         case 'Particle'
-%             imagesc(ensNs, rejs, rmses.');
-%             caxis([0, 1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             axis square;
-%             title('Rmse HeatMap');
-%             colormap('pink');
-%             xlabel('Ensemble Size');
-%             ylabel('Rejuvetion');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-%             set(gca, 'YTickLabel', rejs);
-%             drawnow;
-%     end
-% 
-%     bn = bone;
-%     pk = flipud(pink);
-%     figure(f3);
-%     map1 = bn;
-%     map1 = map1(51:2:end-1, :);
-%     map2 = pk;
-%     map = [map1; map2(2:2:end-50, :)];
-%     switch filtertype
-%         case 'Ensemble'
-%             imagesc(ensNs, infs, rhplotval.');
-%             caxis([-0.1, 0.1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-%             set(gca, 'YTickLabel', infs);
-%             axis square;
-%             title('KLDiv');
-%             colormap(map);
-%             xlabel('Ensemble Size');
-%             ylabel('Inflation');
-%             drawnow;
-%         case 'Particle'
-%             imagesc(ensNs, rejs, rhplotval.');
-%             caxis([-0.1, 0.1]);
-%             colorbar;
-%             set(gca, 'YDir', 'normal');
-%             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-%             set(gca, 'XTickLabel', ensNs);
-%             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-%             set(gca, 'YTickLabel', rejs);
-%             axis square;
-%             title('KLDiv');
-%             colormap(map);
-%             xlabel('Ensemble Size');
-%             ylabel('Rejuvetion');
-%             drawnow;
-%     end
-% 
-% 
-%     figure(f4);
-%     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
-%     plot(spinup+1:1:times, rmstempval);
-%     xlim([spinup + 1, times]);
-%     ylim([0, 1]);
-%     set(gca, 'XTick', [spinup + 1, times])
-%     set(gca, 'XTickLabel', [spinup + 1, times])
-%     han = axes(f4, 'visible', 'off');
-%     han.Title.Visible = 'on';
-%     han.XLabel.Visible = 'on';
-%     han.YLabel.Visible = 'on';
-%     ylabel(han, 'Value');
-%     xlabel(han, 'Time Step');
-%     title(han, 'RMSE');
-%     drawnow;
+    %     rw = numel(infs) - 1 - floor((runn - 1)/numel(ensNs));
+    %     cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
+    %
+    %
+    %     figure(f1);
+    %     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
+    %     hold all;
+    %     z = filter.RankValue(1, 1:end-1);
+    %     maxz = max(z);
+    %     z = z / sum(z);
+    %     NN = numel(z);
+    %     z = NN * z;
+    %     bar(xs, z);
+    %     plot(xs, pval, '-*r');
+    %     set(gca, 'XTick', [xs(1), xs(end)]);
+    %     set(gca, 'XTickLabel', [1, ensN + 1]);
+    %     set(gca, 'YTick', []);
+    %     set(gca, 'YTickLabel', []);
+    %     han = axes(f1, 'visible', 'off');
+    %     han.Title.Visible = 'on';
+    %     han.XLabel.Visible = 'on';
+    %     han.YLabel.Visible = 'on';
+    %     switch filtertype
+    %         case 'Ensemble'
+    %             ylabel(han, 'Inflation');
+    %         case 'Particle'
+    %             ylabel(han, 'Rejuvetion');
+    %     end
+    %     xlabel(han, 'Ensemble Size');
+    %     title(han, 'Rank Histogram');
+    %     drawnow;
+    %
+    %
+    %     figure(f2);
+    %     switch filtertype
+    %         case 'Ensemble'
+    %             imagesc(ensNs, infs, rmses.');
+    %             caxis([0, 1]);
+    %             colorbar;
+    %             set(gca, 'YDir', 'normal');
+    %             axis square;
+    %             title('Rmse HeatMap');
+    %             colormap('pink');
+    %             xlabel('Ensemble Size');
+    %             ylabel('Inflation')
+    %             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
+    %             set(gca, 'XTickLabel', ensNs);
+    %             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
+    %             set(gca, 'YTickLabel', infs);
+    %             drawnow;
+    %         case 'Particle'
+    %             imagesc(ensNs, rejs, rmses.');
+    %             caxis([0, 1]);
+    %             colorbar;
+    %             set(gca, 'YDir', 'normal');
+    %             axis square;
+    %             title('Rmse HeatMap');
+    %             colormap('pink');
+    %             xlabel('Ensemble Size');
+    %             ylabel('Rejuvetion');
+    %             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
+    %             set(gca, 'XTickLabel', ensNs);
+    %             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
+    %             set(gca, 'YTickLabel', rejs);
+    %             drawnow;
+    %     end
+    %
+    %     bn = bone;
+    %     pk = flipud(pink);
+    %     figure(f3);
+    %     map1 = bn;
+    %     map1 = map1(51:2:end-1, :);
+    %     map2 = pk;
+    %     map = [map1; map2(2:2:end-50, :)];
+    %     switch filtertype
+    %         case 'Ensemble'
+    %             imagesc(ensNs, infs, rhplotval.');
+    %             caxis([-0.1, 0.1]);
+    %             colorbar;
+    %             set(gca, 'YDir', 'normal');
+    %             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
+    %             set(gca, 'XTickLabel', ensNs);
+    %             set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
+    %             set(gca, 'YTickLabel', infs);
+    %             axis square;
+    %             title('KLDiv');
+    %             colormap(map);
+    %             xlabel('Ensemble Size');
+    %             ylabel('Inflation');
+    %             drawnow;
+    %         case 'Particle'
+    %             imagesc(ensNs, rejs, rhplotval.');
+    %             caxis([-0.1, 0.1]);
+    %             colorbar;
+    %             set(gca, 'YDir', 'normal');
+    %             set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
+    %             set(gca, 'XTickLabel', ensNs);
+    %             set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
+    %             set(gca, 'YTickLabel', rejs);
+    %             axis square;
+    %             title('KLDiv');
+    %             colormap(map);
+    %             xlabel('Ensemble Size');
+    %             ylabel('Rejuvetion');
+    %             drawnow;
+    %     end
+    %
+    %
+    %     figure(f4);
+    %     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
+    %     plot(spinup+1:1:times, rmstempval);
+    %     xlim([spinup + 1, times]);
+    %     ylim([0, 1]);
+    %     set(gca, 'XTick', [spinup + 1, times])
+    %     set(gca, 'XTickLabel', [spinup + 1, times])
+    %     han = axes(f4, 'visible', 'off');
+    %     han.Title.Visible = 'on';
+    %     han.XLabel.Visible = 'on';
+    %     han.YLabel.Visible = 'on';
+    %     ylabel(han, 'Value');
+    %     xlabel(han, 'Time Step');
+    %     title(han, 'RMSE');
+    %     drawnow;
 
 end
 

@@ -202,7 +202,7 @@ for runn = runsleft.'
         filter.setMean(natureODE.Y0);
         filter.scaleAnomalies(1/10);
 
-        mses = zeros(steps - spinup, 1);
+        mses = zeros(steps-spinup, 1);
 
         rmse = nan;
         ps = '';
@@ -295,7 +295,7 @@ for runn = runsleft.'
     if mm >= maxallowerr
         mm = 0;
     end
-    
+
     % update all the variables for plotting
     rankvalmatrix{runn} = filter.RankValue(1, 1:end-1);
     xvalmatrix{runn} = xs;
