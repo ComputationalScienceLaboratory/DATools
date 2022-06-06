@@ -4,7 +4,7 @@ function Ctilde = cutoffCTilde(t, y, H, r, d, k)
 
 %r = rsfun(r);
 
-ki = d(t, y, k, H)/r;
+ki = d(t, y, k, H) / r;
 CtildeD = cut(ki).';
 
 Ctilde = spdiags(CtildeD, 0, numel(H), numel(H));

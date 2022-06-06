@@ -3,7 +3,7 @@ close all;
 
 rng(5);
 
-Deltat =  0.12;
+Deltat = 0.12;
 
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 100);
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 100);
@@ -18,14 +18,14 @@ nvrs = natureODE.NumVars;
 
 nature0 = randn(nvrs, 1);
 
-[tt, yy] = ode45(natureODE.Rhs.F, [0 10], nature0);
+[tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 modelODE = otp.lorenz63.presets.Canonical;
 modelODE.TimeSpan = [0, Deltat];
 
 
-model  = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
+model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
 % naturetomodel = datools.observation.Linear(numel(nature0), 'H', speye(nvrs));
@@ -35,7 +35,7 @@ observeindicies = 1:3;
 
 nobsvars = numel(observeindicies);
 
-R = (8/1)*speye(nobsvars);
+R = (8 / 1) * speye(nobsvars);
 
 obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 observation = datools.observation.Indexed(model.NumVars, ...
@@ -76,43 +76,42 @@ do_enkf = true;
 sse = 0;
 
 for i = 1:times
-    
+
     nature.evolve();
-    
+
     if do_enkf
         meth.forecast();
     end
-    
-    
+
+
     % observe
     xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
     y = meth.Observation.observeWithError(model.TimeSpan(1), xt);
-    
+
     % analysis
     %try
-        if do_enkf
-            meth.analysis(R, y);
-        end
+    if do_enkf
+        meth.analysis(R, y);
+    end
     %catch
     %    do_enkf = false;
     %end
-    
+
     xa = meth.BestEstimate;
-    
+
     err = xt - xa;
-    
+
     if i > spinup
-        
+
         sse = sse + sum((xa - xt).^2);
         rmse = sqrt(sse/(i - spinup)/nvrs);
-        
+
     end
-    
+
     if rem(i, 10) == 0
         fprintf('step = %d rmse = %.5f\n', i, rmse);
     end
-    
+
 end
 
 rmse
-
