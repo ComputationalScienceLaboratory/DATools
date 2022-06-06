@@ -17,7 +17,7 @@ clear all; close all; clc;
 % filtername = 'RHF';
 
 %% User inputs
-user.modelname = 'Lorenz63';
+user.modelname = 'Lorenz96';
 
 user.filtername = 'EnKF';
 
