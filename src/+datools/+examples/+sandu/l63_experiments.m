@@ -4,11 +4,11 @@ clear all; close all;
 % Use this to run Lorenz 63 experiments
 
 % uncomment the filter you want to run
-filtername = 'EnKF';
+%filtername = 'EnKF';
 %filtername = 'ETKF';
 %filtername = 'ETPF';
 %filtername = 'SIR';
-%filtername = 'RHF';
+filtername = 'RHF';
 
 % oservation variance
 variance = 1;

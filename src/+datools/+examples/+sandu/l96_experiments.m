@@ -17,7 +17,7 @@ filtername = 'RHF';
 variance = 1;
 
 % create an aray of ensemble
-ensNs = [50, 75, 100];
+ensNs = [50, 75, 100, 200];
 
 % create an array of inflation
 infs = [1.02, 1.05, 1.10];
