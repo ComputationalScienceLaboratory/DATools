@@ -1,7 +1,7 @@
 {
     "description": "<p>Initial release</p>", 
     "license": "other-open", 
-    "title": "ComputationalScienceLaboratory/ODE-Test-Problems: v0.0.1", 
+    "title": "ComputationalScienceLaboratory/DATools: v0.0.1", 
     "version": "v0.0.1", 
     "upload_type": "software", 
     "publication_date": "2022-06-16", 
@@ -27,7 +27,7 @@
     "related_identifiers": [
         {
             "scheme": "url", 
-            "identifier": "https://github.com/ComputationalScienceLaboratory/ODE-Test-Problems/tree/v0.0.1", 
+            "identifier": "https://github.com/ComputationalScienceLaboratory/DATools/tree/v0.0.1", 
             "relation": "isSupplementTo"
         }
     ]
