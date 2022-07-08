@@ -45,12 +45,6 @@ observation = datools.observation.Indexed(model.NumVars, ...
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
 
-ensembleGenerator = @(x) randn(nvrs, x);
-
-ensN = 100;
-infl = 1.01;
-rej = 0.1;
-
 % No localization
 localization = [];
 
@@ -58,24 +52,27 @@ B = [0.86, 0.86, -0.02; ...
     0.86, 1.1149, -0.01; ...
     -0.02, -0.01, 1.02];
 
+B = 2*B;
+
 meth = datools.variational.ThreeDVar(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'InitialState', nature.State, ...
     'BackgroundCovariance', B);
 
-spinup = 0;
-times = 1000;
+spinup = 200;
+times = 2200;
 
-do_enkf = true;
+do_filter = true;
 
 sse = 0;
+rmse = 0;
 
 for i = 1:times
 
     nature.evolve();
 
-    if do_enkf
+    if do_filter
         meth.forecast();
     end
 
@@ -86,7 +83,7 @@ for i = 1:times
 
     % analysis
     %try
-    if do_enkf
+    if do_filter
         meth.analysis(R, y);
     end
     %catch
