@@ -13,6 +13,10 @@ classdef ThreeDVar < handle
         BestEstimate % Current estimate of the particles/ensembles
     end
 
+    properties (Access=protected)
+        BDecomposition
+    end
+
     methods
         function obj = ThreeDVar(varargin)
             %ENF   The constructor initializes the properties/attributes
@@ -35,6 +39,7 @@ classdef ThreeDVar < handle
             obj.ModelError = s.ModelError;
             obj.State = s.InitialState;
             obj.B = s.BackgroundCovariance;
+            obj.BDecomposition = decomposition(obj.B, 'chol');
 
             kept = p.Unmatched;
 
@@ -61,7 +66,8 @@ classdef ThreeDVar < handle
         end
 
         function analysis(obj, R, y)
-            B = obj.B;
+            dB = obj.BDecomposition;
+            dR = decomposition(R, 'chol');
             
             xb = obj.State;
             obs = obj.Observation;
@@ -69,9 +75,9 @@ classdef ThreeDVar < handle
             t = obj.Model.TimeSpan(end);
 
             H = @(x) obs.observeWithoutError(t, x);
-            Hadjoint = obs.linearization.';
+            Hadjoint = @(x) obs.linearization(t, x).';
             
-            J = @(x) cost(x, xb, B, y, R, H, Hadjoint);
+            J = @(x) cost(x, xb, dB, y, dR, H, Hadjoint);
 
             opts = optimoptions('fmincon','Display','none','SpecifyObjectiveGradient',true, ...
                 'HessianApproximation', {'lbfgs', 50});
@@ -79,17 +85,17 @@ classdef ThreeDVar < handle
 
             obj.State = xa;
 
-            function [c, g] = cost(x, xb, B, y, R, H, Hadjoint)
+            function [c, g] = cost(x, xb, dB, y, dR, H, Hadjoint)
                 
                 Hx = H(x);
 
-                Bix = B\(x - xb);
+                Bix = dB\(x - xb);
 
-                Riy = R\(Hx - y);
+                Riy = dR\(Hx - y);
                 
                 c = 0.5*(x - xb).'*Bix + 0.5*(Hx - y).'*Riy;
 
-                g = Bix + Hadjoint*Riy;
+                g = Bix + Hadjoint(x)*Riy;
                 
             end
 
