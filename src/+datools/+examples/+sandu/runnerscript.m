@@ -5,40 +5,48 @@ clear all; close all; clc;
 % filtername = 'EnKF';
 % filtername = 'ETKF';
 % filtername = 'ETPF';
+% filtername = 'ETPF2';
 % filtername = 'SIR';
 % filtername = 'RHF';
 %
 % Lorenz96
 % filtername = 'EnKF';
 % filtername = 'ETKF';
-% filtername = 'ETPF';
-% filtername = 'SIR';
+% filtername = 'LETPF';
+% filtername = 'SIR';(X)
 % filtername = 'LETKF';
 % filtername = 'RHF';
 
+% QG
+% filtername = 'EnKF';
+% filtername = 'ETKF';
+% filtername = 'LETKF';
+
 %% User inputs
-user.modelname = 'Lorenz96';
+options.modelname = 'Lorenz63';
 
-user.filtername = 'EnKF';
+options.filtername = 'RHF';
 
-user.ensNs = [25, 50, 75, 100];
+options.ensNs = [10, 20, 30, 40, 50, 100];%[25, 50, 75, 100];
 
-user.infs = [1.01, 1.02, 1.05];
+options.infs = [1, 1.025, 1.05, 1.075, 1.10];
 
-user.variance = 1; % observation variance
+options.variance = 1; % observation variance
 
-user.rejs = round(2*logspace(-2, -1, 4), 2);
+options.rejs = round(2*logspace(-1.5, -0.5, 6), 2);
 
-user.spinups = 2;
+options.spinups = 500;
 
-user.steps = 11 * user.spinups; % change as deemed fit
+options.steps = 11 * options.spinups; % change as deemed fit
 
-user.Dt = 0.12; % 0.12(L63), 0.05(L96)
+options.Dt = 0.12; % 0.12(L63), 0.05(L96), 0.0109(QG)
 
-user.odesolver = 'ode45'; % ode45 , RK4
+options.odesolver = 'ode45'; % ode45 , RK4
 
-user.localize = false;
+options.localize = false;
+
+options.ns = 20;
 
 %%
 % call the experiment file
-datools.examples.sandu.runexperiments(user);
+datools.examples.sandu.runexperiments2(options);

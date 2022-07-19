@@ -1,4 +1,4 @@
-function runexperiments(user)
+function runexperiments2(user)
 % model name
 modelname = user.modelname;
 
@@ -39,6 +39,8 @@ switch filtername
         filtertype = 'Ensemble';
     case 'ETPF'
         filtertype = 'Particle';
+    case 'ETPF2'
+        filtertype = 'Particle';
     case 'SIR'
         filtertype = 'Particle';
     case 'RHF'
@@ -74,6 +76,16 @@ switch modelname
         % Propogate the model
         [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
         natureODE.Y0 = yy(end, :).';
+        
+        xt = natureODE.Y0;
+        
+        % This can be used to generate ensemble if needed
+        ensembleGenerator = @(N) xt + 0.1*randn(natureODE.NumVars, N);
+        
+        % observe these variables
+        % change the array if you want to observe lesser state variables
+        observeindicies = 1:1:natureODE.NumVars;
+        nobsvars = numel(observeindicies);   
     case 'Lorenz96'
         natureODE = otp.lorenz96.presets.Canonical;
         nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
@@ -85,6 +97,16 @@ switch modelname
         % Propogate the model
         [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
         natureODE.Y0 = yy(end, :).';
+        
+        xt = natureODE.Y0;
+        
+        % This can be used to generate ensemble if needed
+        ensembleGenerator = @(N) xt + 0.1*randn(natureODE.NumVars, N);
+        
+                % observe these variables
+        % change the array if you want to observe lesser state variables
+        observeindicies = 1:1:natureODE.NumVars;
+        nobsvars = numel(observeindicies);
     case 'QG'
         natureODE = otp.qg.presets.Canonical('Size', [63, 127]);
         nature0 = natureODE.Y0;
@@ -92,6 +114,19 @@ switch modelname
         
         modelODE = otp.qg.presets.Canonical('Size', [63, 127]);
         modelODE.TimeSpan = [0, Dt];
+        
+        xt = natureODE.Y0;
+        
+        load('qgtrajectory.mat')
+        y = y.';
+        Nt = size(y, 2);
+        
+        ensembleGenerator = @(N) xt + 0.1*y(:, randperm(Nt, N));
+        
+        % observe these variables
+        % change the array if you want to observe lesser state variables
+        nobsvars = 150;
+        observeindicies = round(linspace(1, natureODE.NumVars, nobsvars));
 end
 
 % nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
@@ -112,10 +147,7 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
-% observe these variables
-% change the array if you want to observe lesser state variables
-observeindicies = 1:1:natureODE.NumVars;
-nobsvars = numel(observeindicies);
+
 
 R = variance * speye(nobsvars);
 
@@ -129,12 +161,17 @@ observation = datools.observation.Indexed(model.NumVars, ...
 % We make the assumption that there is no model error
 modelerror = datools.error.Error;
 
-% This can be used to generate ensemble if needed
-ensembleGenerator = @(N) randn(natureODE.NumVars, N);
-
 serveindicies = 1:1:natureODE.NumVars;
-rmses = inf * ones(numel(ensNs), numel(infs));
-rhplotval = inf * ones(numel(ensNs), numel(infs));
+switch(filtertype)
+    case 'Ensemble'
+        rmses = inf * ones(numel(ensNs), numel(infs));
+        rhplotval = inf * ones(numel(ensNs), numel(infs));
+    case 'Particle'
+        rmses = inf * ones(numel(ensNs), numel(rejs));
+        rhplotval = inf * ones(numel(ensNs), numel(rejs));
+end
+% rmses = inf * ones(numel(ensNs), numel(infs));
+% rhplotval = inf * ones(numel(ensNs), numel(infs));
 totalruns = 0;
 
 % save the necessary variables
@@ -158,30 +195,39 @@ for runn = runsleft.'
     switch filtertype
         case 'Ensemble'
             [ensNi, infi] = ind2sub([numel(ensNs), numel(infs)], runn);
-            fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
+            reji = 0;
             inflationAll = infs(infi);
+            rejAll = 0;
             ensN = ensNs(ensNi);
         case 'Particle'
             [ensNi, reji] = ind2sub([numel(ensNs), numel(rejs)], runn);
-            fprintf('N: %d, rej: %.3f\n', ensNs(ensNi), rejs(reji));
+            infi = 0;
             rejAll = rejs(reji);
+            inflationAll = 0;
             ensN = ensNs(ensNi);
     end
 
     ns = numsamples;
     sE = zeros(ns, 1);
+    rankvaluesample = zeros(histvar, ensN+1, numsamples);
+    rmstempvalsample = nan * ones(steps-spinup, numsamples);
 
-    for sample = 1:ns
+    parfor sample = 1:ns
+        %fprintf('N: %d | inf: %.3f | sample = %d\n', ensNs(ensNi), infs(infi), sample);
         % Set rng for standard experiments
         rng(17+sample-1);
+        
+        rmstempvalsampleinner = nan * ones(steps-spinup, 1);
 
         switch filtertype
             case 'Ensemble'
                 inflation = inflationAll;
                 rejuvenation = 0;
+                fprintf('N: %d | inf: %.3f | sample = %d\n', ensNs(ensNi), infs(infi), sample);
             case 'Particle'
                 rejuvenation = rejAll;
                 inflation = 0;
+                fprintf('N: %d | rej: %.3f | sample = %d\n', ensNs(ensNi), rejs(reji), sample);
         end
 
         if (localize)
@@ -191,11 +237,15 @@ for runn = runsleft.'
                     localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
                 case 'LETKF'
                     localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
+                case 'LETPF'
+                    localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
                 case 'ETKF'
                     localization = [];
                 case 'SIR'
                     localization = [];
                 case 'ETPF'
+                    localization = [];
+                case 'ETPF2'
                     localization = [];
                 case 'RHF'
                     localization = [];
@@ -222,6 +272,15 @@ for runn = runsleft.'
                     'Parallel', false, ...
                     'RankHistogram', histvar);
             case 'ETPF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar, ...
+                    'Rejuvenation', rejuvenation);
+            case 'ETPF2'
                 filter = datools.statistical.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
@@ -271,7 +330,7 @@ for runn = runsleft.'
         ps = '';
         dofilter = true;
 
-        rmstempval = NaN * ones(1, steps-spinup);
+        %rmstempval = nan * ones(1, steps-spinup);
 
         % Assimilation steps
         for i = 1:steps
@@ -288,6 +347,7 @@ for runn = runsleft.'
 
             % Rank histogram (if needed)
             datools.utils.stat.RH(filter, xt);
+            rankvaluesample(:,:,sample) = filter.RankValue(1, 1:end-1); 
 
             % analysis
             % try
@@ -307,7 +367,9 @@ for runn = runsleft.'
                 mses(i - spinup) = mean((xa - xt).^2);
                 rmse = sqrt(mean(mses(1:(i - spinup))));
 
-                rmstempval(i - spinup) = rmse;
+                %rmstempvalsample(i - spinup,sample) = rmse;
+                
+                rmstempvalsampleinner(i - spinup) = rmse;
 
                 %                 if rmse > maxallowerr || isnan(rmse) || mses(i - spinup) > 2*maxallowerr
                 %                     dofilter = false;
@@ -329,8 +391,13 @@ for runn = runsleft.'
         else
             sE(sample) = rmse;
         end
-
+        
+        rmstempvalsample(:,sample) = rmstempvalsampleinner;
+        
     end
+    
+    rankvalue = mean(rankvaluesample,3);
+    rmstempval = mean(rmstempvalsample,2);
 
     resE = mean(sE);
 
@@ -342,12 +409,12 @@ for runn = runsleft.'
         case 'Ensemble'
             rmses(ensNi, infi) = resE;
 
-            [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
+            [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(rankvalue, ...
                 (1 / ensN)*ones(1, ensN+1));
         case 'Particle'
             rmses(ensNi, reji) = resE;
 
-            [xs, pval, rhplotval(ensNi, reji)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
+            [xs, pval, rhplotval(ensNi, reji)] = datools.utils.stat.KLDiv(rankvalue, ...
                 (1 / ensN)*ones(1, ensN+1));
     end
 
@@ -359,7 +426,7 @@ for runn = runsleft.'
     end
 
     % update all the variables for plotting
-    rankvalmatrix{runn} = filter.RankValue(1, 1:end-1);
+    rankvalmatrix{runn} = rankvalue;
     xvalmatrix{runn} = xs;
     polyvalmatrix{runn} = pval;
     rmsvalmatrix{runn} = rmstempval;
@@ -368,7 +435,8 @@ for runn = runsleft.'
 end
 
 filename = strcat(modelname, '_', filtername, '.mat');
-filepath = strcat(pwd, '\+datools\+examples\+sandu\', filename);
+%filepath = strcat(pwd, '\+datools\+examples\+sandu\', filename);
+filepath = fullfile(pwd, '+datools', '+examples', '+sandu', filename);
 save(filepath);
 datools.utils.plotexperiments(filepath);
 end

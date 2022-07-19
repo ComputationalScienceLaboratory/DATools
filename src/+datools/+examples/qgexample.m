@@ -41,6 +41,7 @@ modelerror = datools.error.Error;
 
 %ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
+
 load('qgtrajectory.mat')
 y = y.';
 Nt = size(y, 2);
@@ -50,7 +51,7 @@ ensembleGenerator = @(N) natureODE.Y0 + 0.1*y(:, randperm(Nt, N));
 % ensNs = 100:100:500;
 % infs = 1.01:.01:1.05;
 
-ensNs = [15, 25, 50, 100];
+ensNs = [16, 24, 32, 48];
 infs = [1.01, 1.02, 1.05, 1.10];
 rejs = [1.01, 1.02, 1.03, 1.05];
 
@@ -89,42 +90,58 @@ for runn = runsleft.'
 
     inflationAll = infs(infi);
     ensN = ensNs(ensNi);
+    
+    % define steps and spinups
+    spinup = 50;
+    times = 350;
+    
+    % for storing temporary rmse values
+    rmstempval = zeros(ns, times-spinup);
+    
+    % define the filter to be empty (to support parfor)
+    %filterglobal = [];
 
     for sample = 1:ns
         % Set rng for standard experiments
         rng(17+sample-1);
+        
+        rmstempvalloc = zeros(1, times-spinup);
 
         inflation = inflationAll;
 
         % No localization
 
-        r = 4;
+        r = 15;
         d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
         localization = [];
 
 
         %localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
-        %$localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
+        
+        % THE METHODS BELOW ARE FOR LETKF
+        %localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
 
 
-        enkf = datools.statistical.ensemble.EnKF(model, ...
+        filter = datools.statistical.ensemble.EnKF(model, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...
             'ModelError', modelerror, ...
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
             'Localization', localization, ...
-            'Parallel', false, ...
+            'Parallel', true, ...
             'RankHistogram', histvar, ...
             'Rejuvenation', 0.1);
+        
+        %filterglobal = filter;
 
-        enkf.setMean(natureODE.Y0);
-        enkf.scaleAnomalies(1/10);
+        filter.setMean(natureODE.Y0);
+        filter.scaleAnomalies(1/10);
 
         % define steps and spinups
-        spinup = 50;
-        times = 350;
+        %spinup = 5;
+        %times = 35;
 
         mses = zeros(times - spinup, 1);
 
@@ -134,35 +151,35 @@ for runn = runsleft.'
 
         do_enkf = true;
 
-        rmstempval = NaN * ones(1, times-spinup);
+        %rmstempval = NaN * ones(1, times-spinup);
 
         for i = 1:times
             % forecast
             nature.evolve();
 
             if do_enkf
-                enkf.forecast();
+                filter.forecast();
             end
 
 
             % observe
             xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = enkf.Observation.observeWithError(model.TimeSpan(1), xt);
+            y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(enkf, xt);
+            datools.utils.stat.RH(filter, xt);
 
             % analysis
 
             % try
             if do_enkf
-                enkf.analysis(R, y);
+                filter.analysis(R, y);
             end
             %catch
             %    do_enkf = false;
             %end
 
-            xa = enkf.BestEstimate;
+            xa = filter.BestEstimate;
 
             err = xt - xa;
 
@@ -171,7 +188,7 @@ for runn = runsleft.'
                 mses(i - spinup) = mean((xa - xt).^2);
                 rmse = sqrt(mean(mses(1:(i - spinup))));
 
-                rmstempval(i - spinup) = rmse;
+                rmstempvalloc(i - spinup) = rmse;
 
                 %                 if rmse > maxallowerr || isnan(rmse) || mses(i - spinup) > 2*maxallowerr
                 %                     do_enkf = false;
@@ -184,6 +201,9 @@ for runn = runsleft.'
             end
 
         end
+        
+        rmstempval(sample, :) = rmstempvalloc;
+        
 
         if isnan(rmse)
             rmse = 1000;
@@ -198,6 +218,8 @@ for runn = runsleft.'
     end
 
     resE = mean(sE);
+    
+    rmstempval = mean(rmstempval,1);
 
     if isnan(resE)
         resE = 1000;
@@ -205,7 +227,7 @@ for runn = runsleft.'
 
     rmses(ensNi, infi) = resE;
 
-    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(enkf.RankValue(1, 1:end-1), ...
+    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
         (1 / ensN)*ones(1, ensN+1));
 
     mm = min(rmses(:));
@@ -222,7 +244,7 @@ for runn = runsleft.'
     set(gca, 'XTickLabel', ensNs);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
     hold all;
-    z = enkf.RankValue(1, 1:end-1);
+    z = filter.RankValue(1, 1:end-1);
     z = z / sum(z);
     NN = numel(z);
     z = NN * z;

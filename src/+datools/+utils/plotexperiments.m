@@ -6,11 +6,24 @@ load(filepath);
 f1 = figure;
 f2 = figure;
 
+switch filtertype
+    case 'Ensemble'
+        infs = infs;
+    case 'Particle'
+        infs = rejs;
+end
+
 for runn = 1:totalruns
     rw = numel(infs) - 1 - floor((runn - 1)/numel(ensNs));
     cl = runn - floor((runn - 1)/numel(ensNs)) * numel(ensNs);
     row = floor((runn - 1)/numel(ensNs)) + 1;
     col = runn - (row - 1) * numel(ensNs);
+    
+    ensN = ensNs(col);
+    
+    ylabelposition = -0.095;
+    subxlabelposition = 0.045;
+    subylabelposition = 0.1;
 
     figure(f1);
     ha = subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
@@ -21,8 +34,10 @@ for runn = 1:totalruns
     z = z / sum(z);
     NN = numel(z);
     z = NN * z;
-    bar(xvalmatrix{runn}, z);
-    plot(xvalmatrix{runn}, polyvalmatrix{runn}, '-*r');
+    h = bar(xvalmatrix{runn}, z, 'hist');
+    h.EdgeColor = 'none';
+    h.FaceColor = '#0072BD';
+    plot(xvalmatrix{runn}, polyvalmatrix{runn}, 'Color', '#A2142F', 'LineWidth', 3);
     set(gca, 'XTick', [xs(1), xs(end)]);
     set(gca, 'XTickLabel', [1, ensN + 1]);
     set(gca, 'YTick', []);
@@ -33,22 +48,24 @@ for runn = 1:totalruns
     han.YLabel.Visible = 'on';
     switch filtertype
         case 'Ensemble'
-            ylabel(han, 'Inflation');
+            ylabelpointer = ylabel(han, 'Inflation', 'FontSize', 10, 'FontWeight', 'bold');
+            ylabelpointer.Position = [ylabelposition 0.5000 -7.1054e-15];
         case 'Particle'
-            ylabel(han, 'Rejuvetion');
+            ylabelpointer = ylabel(han, 'Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
+            ylabelpointer.Position = [ylabelposition 0.5000 -7.1054e-15];
     end
-    xlabel(han, 'Ensemble Size');
+    xlabel(han, 'Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
     title(han, 'Rank Histogram');
     if (row == 1)
 
         hapos = get(ha, 'position');
-        a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.020, 0.1, 0, 0], 'string', num2str(ensNs(col)));
+        a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.030, subylabelposition, 0, 0], 'string', num2str(ensNs(col)));
         a.FontWeight = 'demi';
 
     end
     if (col == 1)
         hapos = get(ha, 'position');
-        a = annotation('textbox', [0.065, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infs(row)));
+        a = annotation('textbox', [subxlabelposition, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infs(row)));
         a.FontWeight = 'demi';
     end
 
@@ -66,18 +83,19 @@ for runn = 1:totalruns
     han.Title.Visible = 'on';
     han.XLabel.Visible = 'on';
     han.YLabel.Visible = 'on';
-    ylabel(han, 'Value');
-    xlabel(han, 'Time Step');
+    ylabelpointer = ylabel(han, 'Value', 'FontSize', 10, 'FontWeight', 'bold');
+    ylabelpointer.Position = [ylabelposition 0.5000 -7.1054e-15];
+    xlabel(han, 'Time Step', 'FontSize', 10, 'FontWeight', 'bold');
     title(han, 'RMSE');
     if (row == 1)
 
         hapos = get(ha, 'position');
-        a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.020, 0.1, 0, 0], 'string', num2str(ensNs(col)));
+        a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.030, subylabelposition, 0, 0], 'string', num2str(ensNs(col)));
         a.FontWeight = 'demi';
     end
     if (col == 1)
         hapos = get(ha, 'position');
-        a = annotation('textbox', [0.065, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infs(row)));
+        a = annotation('textbox', [subxlabelposition, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infs(row)));
         a.FontWeight = 'demi';
     end
 
@@ -94,10 +112,10 @@ switch filtertype
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
-        title('Rmse HeatMap');
+        title('RMSE Heatmap');
         colormap('pink');
-        xlabel('Ensemble Size');
-        ylabel('Inflation')
+        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
+        ylabel('Inflation', 'FontSize', 10, 'FontWeight', 'bold');
         set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
         set(gca, 'XTickLabel', ensNs);
         set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
@@ -108,10 +126,10 @@ switch filtertype
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
-        title('Rmse HeatMap');
+        title('RMSE HeatMap');
         colormap('pink');
-        xlabel('Ensemble Size');
-        ylabel('Rejuvetion');
+        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
+        ylabel('Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
         set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
         set(gca, 'XTickLabel', ensNs);
         set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
@@ -137,10 +155,10 @@ switch filtertype
         set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
         set(gca, 'YTickLabel', infs);
         axis square;
-        title('KLDiv');
+        title('D_{KL}');
         colormap(map);
-        xlabel('Ensemble Size');
-        ylabel('Inflation');
+        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
+        ylabel('Inflation', 'FontSize', 10, 'FontWeight', 'bold');
     case 'Particle'
         imagesc(ensNs, rejs, rhplotval.');
         caxis([-0.1, 0.1]);
@@ -151,10 +169,10 @@ switch filtertype
         set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
         set(gca, 'YTickLabel', rejs);
         axis square;
-        title('KLDiv');
+        title('D_{KL}');
         colormap(map);
-        xlabel('Ensemble Size');
-        ylabel('Rejuvetion');
+        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
+        ylabel('Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
 end
 
 end
