@@ -27,6 +27,18 @@ localize = user.localize;
 % numberof samples for averaging runs
 numsamples = user.ns;
 
+% observation indices
+observeindicies = user.observeindicies;
+
+%localization radius
+r = user.localizationradius;
+
+% plot indices
+rankhistogramplotindex = user.rankhistogramplotindex;
+rmseplotindex = user.rmseplotindex;
+rmseheatmapplotindex = user.rmseheatmapplotindex;
+kldivergenceplotindex = user.kldivergenceplotindex;
+
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % rank histogram for the 1st state only (for now)
 histvar = 1:1:1;
@@ -37,13 +49,19 @@ switch filtername
         filtertype = 'Ensemble';
     case 'ETKF'
         filtertype = 'Ensemble';
+    case 'LETKF'
+        filtertype = 'Ensemble';
     case 'ETPF'
         filtertype = 'Particle';
     case 'ETPF2'
         filtertype = 'Particle';
+    case 'LETPF'
+        filtertype = 'Particle';
     case 'SIR'
         filtertype = 'Particle';
     case 'RHF'
+        filtertype = 'Ensemble';
+    case 'EnGMF'
         filtertype = 'Ensemble';
 end
 fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n', ...
@@ -69,60 +87,60 @@ switch modelname
         natureODE = otp.lorenz63.presets.Canonical;
         nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
         natureODE.TimeSpan = [0, Dt];
-        
+
         modelODE = otp.lorenz63.presets.Canonical;
         modelODE.TimeSpan = [0, Dt];
-        
+
         % Propogate the model
         [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
         natureODE.Y0 = yy(end, :).';
-        
+
         xt = natureODE.Y0;
-        
+
         % This can be used to generate ensemble if needed
-        ensembleGenerator = @(N) xt + 0.1*randn(natureODE.NumVars, N);
-        
+        ensembleGenerator = @(N) xt + 0.1 * randn(natureODE.NumVars, N);
+
         % observe these variables
         % change the array if you want to observe lesser state variables
-        observeindicies = 1:1:natureODE.NumVars;
-        nobsvars = numel(observeindicies);   
+        % observeindicies = 1:1:natureODE.NumVars;
+        nobsvars = numel(observeindicies);
     case 'Lorenz96'
         natureODE = otp.lorenz96.presets.Canonical;
         nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
         natureODE.TimeSpan = [0, Dt];
-        
+
         modelODE = otp.lorenz96.presets.Canonical;
         modelODE.TimeSpan = [0, Dt];
-        
+
         % Propogate the model
         [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
         natureODE.Y0 = yy(end, :).';
-        
+
         xt = natureODE.Y0;
-        
+
         % This can be used to generate ensemble if needed
-        ensembleGenerator = @(N) xt + 0.1*randn(natureODE.NumVars, N);
-        
-                % observe these variables
+        ensembleGenerator = @(N) xt + 0.1 * randn(natureODE.NumVars, N);
+
+        % observe these variables
         % change the array if you want to observe lesser state variables
-        observeindicies = 1:1:natureODE.NumVars;
+        % observeindicies = 1:1:natureODE.NumVars;
         nobsvars = numel(observeindicies);
     case 'QG'
         natureODE = otp.qg.presets.Canonical('Size', [63, 127]);
         nature0 = natureODE.Y0;
         natureODE.TimeSpan = [0, Dt];
-        
+
         modelODE = otp.qg.presets.Canonical('Size', [63, 127]);
         modelODE.TimeSpan = [0, Dt];
-        
+
         xt = natureODE.Y0;
-        
+
         load('qgtrajectory.mat')
         y = y.';
         Nt = size(y, 2);
-        
-        ensembleGenerator = @(N) xt + 0.1*y(:, randperm(Nt, N));
-        
+
+        ensembleGenerator = @(N) xt + 0.1 * y(:, randperm(Nt, N));
+
         % observe these variables
         % change the array if you want to observe lesser state variables
         nobsvars = 150;
@@ -148,7 +166,6 @@ naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
 
-
 R = variance * speye(nobsvars);
 
 % Observaton model (Gaussian here)
@@ -162,7 +179,7 @@ observation = datools.observation.Indexed(model.NumVars, ...
 modelerror = datools.error.Error;
 
 serveindicies = 1:1:natureODE.NumVars;
-switch(filtertype)
+switch (filtertype)
     case 'Ensemble'
         rmses = inf * ones(numel(ensNs), numel(infs));
         rhplotval = inf * ones(numel(ensNs), numel(infs));
@@ -216,7 +233,7 @@ for runn = runsleft.'
         %fprintf('N: %d | inf: %.3f | sample = %d\n', ensNs(ensNi), infs(infi), sample);
         % Set rng for standard experiments
         rng(17+sample-1);
-        
+
         rmstempvalsampleinner = nan * ones(steps-spinup, 1);
 
         switch filtertype
@@ -248,6 +265,8 @@ for runn = runsleft.'
                 case 'ETPF2'
                     localization = [];
                 case 'RHF'
+                    localization = [];
+                case 'EnGMF'
                     localization = [];
             end
         end
@@ -318,6 +337,25 @@ for runn = runsleft.'
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
+            case 'LETPF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Inflation', inflation, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar, ...
+                    'Rejuvenation', rejuvenation);
+            case 'EnGMF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Inflation', inflation, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar);
 
         end
 
@@ -337,8 +375,12 @@ for runn = runsleft.'
             % forecast/evolve the model
             nature.evolve();
 
-            if dofilter
-                filter.forecast();
+            try
+                if dofilter
+                    filter.forecast();
+                end
+            catch e
+                dofilter = false
             end
 
             % observe
@@ -347,16 +389,16 @@ for runn = runsleft.'
 
             % Rank histogram (if needed)
             datools.utils.stat.RH(filter, xt);
-            rankvaluesample(:,:,sample) = filter.RankValue(1, 1:end-1); 
+            rankvaluesample(:, :, sample) = filter.RankValue(1, 1:end-1);
 
             % analysis
-            % try
-            if dofilter
-                filter.analysis(R, y);
+            try
+                if dofilter
+                    filter.analysis(R, y);
+                end
+            catch
+                dofilter = false;
             end
-            %catch
-            %    dofilter = false;
-            %end
 
             xa = filter.BestEstimate;
 
@@ -368,7 +410,7 @@ for runn = runsleft.'
                 rmse = sqrt(mean(mses(1:(i - spinup))));
 
                 %rmstempvalsample(i - spinup,sample) = rmse;
-                
+
                 rmstempvalsampleinner(i - spinup) = rmse;
 
                 %                 if rmse > maxallowerr || isnan(rmse) || mses(i - spinup) > 2*maxallowerr
@@ -391,13 +433,13 @@ for runn = runsleft.'
         else
             sE(sample) = rmse;
         end
-        
-        rmstempvalsample(:,sample) = rmstempvalsampleinner;
-        
+
+        rmstempvalsample(:, sample) = rmstempvalsampleinner;
+
     end
-    
-    rankvalue = mean(rankvaluesample,3);
-    rmstempval = mean(rmstempvalsample,2);
+
+    rankvalue = mean(rankvaluesample, 3);
+    rmstempval = mean(rmstempvalsample, 2);
 
     resE = mean(sE);
 
