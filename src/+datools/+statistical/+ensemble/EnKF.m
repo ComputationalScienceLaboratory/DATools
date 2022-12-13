@@ -32,7 +32,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
             else
                 H = obj.Observation.linearization(tc, xfm);
                 rhoHt = obj.Localization(tc, xfm, H);
-                HrhoHt = H * rhoHt;
+                HrhoHt = eye(size(H)) * rhoHt;
             end
 
             PfHt = rhoHt .* ((1 / (ensN - 1)) * (Af * (HAf.')));

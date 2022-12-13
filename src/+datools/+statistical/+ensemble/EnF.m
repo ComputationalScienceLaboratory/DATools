@@ -46,11 +46,11 @@ classdef EnF < handle
             addParameter(p, 'ModelError', datools.error.Error);
             addParameter(p, 'NumEnsemble', 1);
             addParameter(p, 'Inflation', 1);
-            addParameter(p, 'Rejuvenation', []);
+            addParameter(p, 'Rejuvenation', 0);
             addParameter(p, 'Localization', []);
             addParameter(p, 'Parallel', false);
             addParameter(p, 'RIPIterations', 0);
-            addParameter(p, 'RankHistogram', [])
+            addParameter(p, 'RankHistogram', []);
             addParameter(p, 'ResamplingThreshold', 0.5);
             parse(p, varargin{:});
 
