@@ -1,0 +1,34 @@
+{
+    "description": "<p>Initial release</p>", 
+    "license": "other-open", 
+    "title": "ComputationalScienceLaboratory/DATools: v0.0.1", 
+    "version": "v0.0.1", 
+    "upload_type": "software", 
+    "publication_date": "2022-06-16", 
+    "creators": [
+        {
+            "affiliation": "Virginia Tech", 
+            "name": "Andrey A Popov"
+        }, 
+        {
+            "affiliation": "Virginia Tech", 
+            "name": "Abhinab Bhattacharjee"
+        }, 
+        {
+            "affiliation": "Virginia Tech", 
+            "name": "Amit N Subrahmanya"
+        }, 
+        {
+            "affiliation": "Virginia Tech", 
+            "name": "Adrian Sandu"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "scheme": "url", 
+            "identifier": "https://github.com/ComputationalScienceLaboratory/DATools/tree/v0.0.1", 
+            "relation": "isSupplementTo"
+        }
+    ]
+}

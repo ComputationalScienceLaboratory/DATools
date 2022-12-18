@@ -93,7 +93,7 @@ classdef EnF < handle
             times = zeros(obj.NumEnsemble, 1);
 
             if obj.Parallel
-                rhs = obj.Model.ODEModel.Rhs.F;
+                rhs = obj.Model.ODEModel.RHS.F;
                 tspan = obj.Model.TimeSpan;
                 solver = obj.Model.Solver;
                 ens = obj.Ensemble;
@@ -171,7 +171,7 @@ classdef EnF < handle
         end
 
         function scaleAnomalies(obj, scale)
-            % SCALEANOMALIES  Method to scale the anomalies of the ensembles
+            %SCALEANOMALIES  Method to scale the anomalies of the ensembles
             %
             %   SCALEANOMALIES(OBJ, SCALE) scales the unbiased current
             %   ensembles of state using the scaling factor SCALE
@@ -186,7 +186,7 @@ classdef EnF < handle
         end
 
         function rejuvenate(obj, tau, Xf)
-            % REJUVENATE  To reduce particle degeneracy
+            %REJUVENATE  To reduce particle degeneracy
             %
             %   REJUVENATE(OBJ, TAU, XF) adds a random noise in the form of
             %   random combination of background anomalies of the ensembles
