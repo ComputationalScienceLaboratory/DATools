@@ -17,17 +17,20 @@ clear all; close all; clc;
 % filtername = 'RHF';
 
 %% User inputs
-user.modelname = 'Lorenz96';
+user.modelname = 'Lorenz63';
 
-user.filtername = 'EnKF';
+user.filtername = 'SIS_EnKF';
 
-user.ensNs = [25, 50, 75, 100];
+%user.ensNs = [25, 50, 75, 100];
+user.ensNs = [1000];
 
-user.infs = [1.01, 1.02, 1.05];
+%user.infs = [1.01, 1.02, 1.05];
+user.infs = [1.01];
 
 user.variance = 1; % observation variance
 
-user.rejs = round(2*logspace(-2, -1, 4), 2);
+%user.rejs = round(2*logspace(-2, -1, 4), 2);
+user.rejs = [0.1];
 
 user.spinups = 2;
 
