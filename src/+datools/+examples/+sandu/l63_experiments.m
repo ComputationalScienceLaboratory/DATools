@@ -4,11 +4,11 @@ clear all; close all; clc;
 % Use this to run Lorenz 63 experiments
 modelname = 'Lorenz63';
 % uncomment the filter you want to run
-%filtername = 'EnKF';
+filtername = 'EnKF';
 %filtername = 'ETKF';
 %filtername = 'ETPF';
 %filtername = 'SIR';
-filtername = 'RHF';
+%filtername = 'RHF';
 
 % oservation variance
 variance = 1;
@@ -29,7 +29,7 @@ steps = 11 * spinup;
 
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % rank histogram for the 1st state only (for now)
-histvar = 1:1:1;
+histvar = 1:1:2;
 % decide the type of filter
 switch filtername
     case 'EnKF'
@@ -224,7 +224,7 @@ for runn = runsleft.'
             y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(filter, xt);
+            datools.utils.stat.RH(filter, xt, y);
 
             % analysis
             % try

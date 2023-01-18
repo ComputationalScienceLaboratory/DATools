@@ -33,6 +33,10 @@ observeindicies = user.observeindicies;
 %localization radius
 r = user.localizationradius;
 
+% the states for which the histograms are saved
+histvar = user.histvar;
+RHmeasure = user.RHmeasure;
+
 % plot indices
 rankhistogramplotindex = user.rankhistogramplotindex;
 rmseplotindex = user.rmseplotindex;
@@ -41,7 +45,7 @@ kldivergenceplotindex = user.kldivergenceplotindex;
 
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % rank histogram for the 1st state only (for now)
-histvar = 1:1:1;
+%histvar = 1:1:1;
 
 % decide the type of filter
 switch filtername
@@ -58,6 +62,8 @@ switch filtername
     case 'LETPF'
         filtertype = 'Particle';
     case 'SIR'
+        filtertype = 'Particle';
+    case 'SIS_EnKF'
         filtertype = 'Particle';
     case 'RHF'
         filtertype = 'Ensemble';
@@ -161,7 +167,7 @@ end
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
-% Observation Model
+% Observable model
 naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
@@ -226,7 +232,7 @@ for runn = runsleft.'
 
     ns = numsamples;
     sE = zeros(ns, 1);
-    rankvaluesample = zeros(histvar, ensN+1, numsamples);
+    rankvaluesample = zeros(numel(histvar), ensN+1, numsamples);
     rmstempvalsample = nan * ones(steps-spinup, numsamples);
 
     parfor sample = 1:ns
@@ -259,6 +265,8 @@ for runn = runsleft.'
                 case 'ETKF'
                     localization = [];
                 case 'SIR'
+                    localization = [];
+                case 'SIS_EnKF'
                     localization = [];
                 case 'ETPF'
                     localization = [];
@@ -317,6 +325,16 @@ for runn = runsleft.'
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
+            case 'SIS_EnKF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar, ...
+                    'Rejuvenation', rejuvenation, ...
+                    'Inflation', 1.05);
             case 'RHF'
                 filter = datools.statistical.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
@@ -380,17 +398,18 @@ for runn = runsleft.'
                     filter.forecast();
                 end
             catch e
-                dofilter = false
+                dofilter = false;
             end
 
             % observe
-            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
+            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State); % H(x_true)
+            y = filter.Observation.observeWithError(model.TimeSpan(1), xt); % H(x_true) + noise
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(filter, xt);
-            rankvaluesample(:, :, sample) = filter.RankValue(1, 1:end-1);
+%             datools.utils.stat.RH(filter, xt, y, Hxa, RHmeasure);
+%             rankvaluesample(:, :, sample) = filter.RankValue(:, 1:end-1);
 
+            
             % analysis
             try
                 if dofilter
@@ -401,6 +420,15 @@ for runn = runsleft.'
             end
 
             xa = filter.BestEstimate;
+            xaensembles = filter.Ensemble;
+            
+            % observable
+            hxa = naturetomodel.observeWithoutError(model.TimeSpan(1), xaensembles); % H(x_analysis)
+            Hxa = filter.Observation.observeWithError(model.TimeSpan(1), hxa); % H(x_analysis) + noise
+            
+            % Rank histogram (if needed)
+            datools.utils.stat.RH(filter, xt, y, Hxa, RHmeasure);
+            rankvaluesample(:, :, sample) = filter.RankValue(:, 1:end-1);
 
             err = xt - xa;
 
@@ -446,13 +474,22 @@ for runn = runsleft.'
     if isnan(resE)
         resE = 1000;
     end
+    
+%     totalklval = 0;
+%     for klcounter = 1:numel(histvar)
+%         klvalue = datools.utils.stat.KLDivergence(rankvalue(klcounter,:), (1 / (ensN+1))*ones(1, ensN+1));
+%         totalklval = totalklval + klvalue;
+%     end
+    
+    rankvalue = sum(rankvalue,1);
 
     switch filtertype
         case 'Ensemble'
             rmses(ensNi, infi) = resE;
 
             [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(rankvalue, ...
-                (1 / ensN)*ones(1, ensN+1));
+                (1 / (ensN+1))*ones(1, ensN+1));
+            %rhplotval(ensNi, infi) = totalklval;
         case 'Particle'
             rmses(ensNi, reji) = resE;
 

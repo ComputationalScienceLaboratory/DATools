@@ -48,7 +48,9 @@ for runn = 1:totalrunsplot
     h = bar(xvalmatrix{plotindices(runn)}, z, 'hist');
     h.EdgeColor = 'none';
     h.FaceColor = '#0072BD';
-    plot(xvalmatrix{plotindices(runn)}, polyvalmatrix{plotindices(runn)}, 'Color', '#A2142F', 'LineWidth', 3);
+    xvalplot = linspace(0, 1, 50);
+    yvalplot = interp1(xvalmatrix{plotindices(runn)}, polyvalmatrix{plotindices(runn)}, xvalplot, 'cubic');
+    %plot(xvalplot, yvalplot, 'Color', '#A2142F', 'LineWidth', 3);
     set(gca, 'XTick', [xs(1), xs(end)]);
     set(gca, 'XTickLabel', [1, ensN + 1]);
     set(gca, 'YTick', []);
@@ -59,30 +61,31 @@ for runn = 1:totalrunsplot
     han.YLabel.Visible = 'on';
     switch filtertype
         case 'Ensemble'
-            ylabelpointer = ylabel(han, 'Inflation', 'FontSize', 10, 'FontWeight', 'bold');
+            ylabelpointer = ylabel(han, 'Inflation', 'FontSize', 11, 'FontWeight', 'bold');
             ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
         case 'Particle'
-            ylabelpointer = ylabel(han, 'Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
+            ylabelpointer = ylabel(han, 'Rejuvetion', 'FontSize', 11, 'FontWeight', 'bold');
             ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
     end
-    xlabel(han, 'Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-    title(han, 'Rank Histogram');
+    xlabel(han, 'Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+    title(han, 'Rank Histogram', 'FontSize', 14);
     if (row == 1)
         hapos = get(ha, 'position');
         a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.030, subylabelposition, 0, 0], 'string', num2str(ensNsplot(col)));
-        a.FontWeight = 'demi';
+        a.FontWeight = 'bold';
 
     end
     if (col == 1)
         hapos = get(ha, 'position');
         a = annotation('textbox', [subxlabelposition, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infsplot(row)));
-        a.FontWeight = 'demi';
+        a.FontWeight = 'bold';
     end
 
 
-    figure(f2);
+    figure(f2); 
+%figure;
     subplot(numel(infsplot), numel(ensNsplot), rw*numel(ensNsplot)+cl);
-    plot(spinup+1:1:steps, rmsvalmatrix{plotindices(runn)});
+    plot(spinup+1:1:steps, rmsvalmatrix{plotindices(runn)}, '.','MarkerSize', 8);
     xlim([spinup + 1, steps]);
     ylim([0, variance]);
     set(gca, 'XTick', [spinup + 1, steps]);
@@ -93,20 +96,28 @@ for runn = 1:totalrunsplot
     han.Title.Visible = 'on';
     han.XLabel.Visible = 'on';
     han.YLabel.Visible = 'on';
-    ylabelpointer = ylabel(han, 'Value', 'FontSize', 10, 'FontWeight', 'bold');
-    ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
-    xlabel(han, 'Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-    title(han, 'RMSE');
+    %ylabelpointer = ylabel(han, 'Value', 'FontSize', 10, 'FontWeight', 'bold');
+    %ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
+    switch filtertype
+        case 'Ensemble'
+            ylabelpointer = ylabel(han, 'Inflation', 'FontSize', 11, 'FontWeight', 'bold');
+            ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
+        case 'Particle'
+            ylabelpointer = ylabel(han, 'Rejuvetion', 'FontSize', 11, 'FontWeight', 'bold');
+            ylabelpointer.Position = [ylabelposition, 0.5000, -7.1054e-15];
+    end
+    xlabel(han, 'Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+    title(han, 'RMSE', 'FontSize', 14);
     if (row == 1)
 
         hapos = get(ha, 'position');
         a = annotation('textbox', [hapos(1) + hapos(3) / 2 - 0.030, subylabelposition, 0, 0], 'string', num2str(ensNsplot(col)));
-        a.FontWeight = 'demi';
+        a.FontWeight = 'bold';
     end
     if (col == 1)
         hapos = get(ha, 'position');
         a = annotation('textbox', [subxlabelposition, hapos(2) + hapos(4) / 2 + 0.02, 0, 0], 'string', num2str(infsplot(row)));
-        a.FontWeight = 'demi';
+        a.FontWeight = 'bold';
     end
 
 end
@@ -115,74 +126,85 @@ f3 = figure;
 f4 = figure;
 
 figure(f3);
+ensemblenumberplot = ensNs(rmseheatmapplotindex);
+inflationnumberplot = infs(rmseheatmapplotindex);
+rejuvenationnumberplot = rejs(rmseheatmapplotindex);
+rmsesnumberplot = rmses(rmseheatmapplotindex,rmseheatmapplotindex);
 switch filtertype
     case 'Ensemble'
-        imagesc(ensNs, infs, rmses.');
+        imagesc(ensemblenumberplot, inflationnumberplot, rmsesnumberplot.');
         caxis([0, variance]);
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
-        title('RMSE Heatmap');
+        title('RMSE Heatmap', 'FontSize', 14);
         colormap('pink');
-        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-        ylabel('Inflation', 'FontSize', 10, 'FontWeight', 'bold');
-        set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-        set(gca, 'XTickLabel', ensNs);
-        set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-        set(gca, 'YTickLabel', infs);
+        xlabel('Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+        ylabel('Inflation', 'FontSize', 11, 'FontWeight', 'bold');
+        set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
+        set(gca, 'XTickLabel', ensemblenumberplot, 'FontWeight', 'bold');
+        set(gca, 'YTick', linspace(inflationnumberplot(1), inflationnumberplot(end), size(inflationnumberplot, 2)));
+        set(gca, 'YTickLabel', inflationnumberplot, 'FontWeight', 'bold');
     case 'Particle'
-        imagesc(ensNs, rejs, rmses.');
+        imagesc(ensemblenumberplot, rejuvenationnumberplot, rmsesnumberplot.');
         caxis([0, variance]);
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
-        title('RMSE HeatMap');
+        title('RMSE HeatMap', 'FontSize', 14);
         colormap('pink');
-        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-        ylabel('Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
-        set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-        set(gca, 'XTickLabel', ensNs);
-        set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-        set(gca, 'YTickLabel', rejs);
+        xlabel('Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+        ylabel('Rejuvenation', 'FontSize', 11, 'FontWeight', 'bold');
+        set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
+        set(gca, 'XTickLabel', ensemblenumberplot, 'FontWeight', 'bold');
+        set(gca, 'YTick', linspace(rejuvenationnumberplot(1), rejuvenationnumberplot(end), size(rejuvenationnumberplot, 2)));
+        set(gca, 'YTickLabel', rejuvenationnumberplot, 'FontWeight', 'bold');
 end
 
 
-bn = bone;
-pk = flipud(pink);
+bn = flipud(bone);
+pk = pink;
+%pk = flipud(pink);
 figure(f4);
 map1 = bn;
-map1 = map1(51:2:end-1, :);
+map1 = map1(1:2:end-50, :);
 map2 = pk;
-map = [map1; map2(2:2:end-50, :)];
+map = [map1; map2(50:2:end-1, :)];
+% map = flipud(map);
+% map = pink;
+ensemblenumberplot = ensNs(kldivergenceplotindex);
+inflationnumberplot = infs(kldivergenceplotindex);
+rejuvenationnumberplot = rejs(kldivergenceplotindex);
+rhsnumberplot = rhplotval(kldivergenceplotindex,kldivergenceplotindex);
 switch filtertype
     case 'Ensemble'
-        imagesc(ensNs, infs, rhplotval.');
-        caxis([-0.1, 0.1]);
+        imagesc(ensemblenumberplot, inflationnumberplot, rhsnumberplot.');
+        caxis([-1, 1]);
         colorbar;
         set(gca, 'YDir', 'normal');
-        set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-        set(gca, 'XTickLabel', ensNs);
-        set(gca, 'YTick', linspace(infs(1), infs(end), size(infs, 2)));
-        set(gca, 'YTickLabel', infs);
+        set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
+        set(gca, 'XTickLabel', ensemblenumberplot, 'FontWeight', 'bold');
+        set(gca, 'YTick', linspace(inflationnumberplot(1), inflationnumberplot(end), size(inflationnumberplot, 2)));
+        set(gca, 'YTickLabel', inflationnumberplot, 'FontWeight', 'bold');
         axis square;
-        title('D_{KL}');
+        title('D_{KL}', 'FontSize', 14);
         colormap(map);
-        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-        ylabel('Inflation', 'FontSize', 10, 'FontWeight', 'bold');
+        xlabel('Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+        ylabel('Inflation', 'FontSize', 11, 'FontWeight', 'bold');
     case 'Particle'
-        imagesc(ensNs, rejs, rhplotval.');
+        imagesc(ensemblenumberplot, rejuvenationnumberplot, rhsnumberplot.');
         caxis([-0.1, 0.1]);
         colorbar;
         set(gca, 'YDir', 'normal');
-        set(gca, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs, 2)));
-        set(gca, 'XTickLabel', ensNs);
-        set(gca, 'YTick', linspace(rejs(1), rejs(end), size(rejs, 2)));
-        set(gca, 'YTickLabel', rejs);
+        set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
+        set(gca, 'XTickLabel', ensemblenumberplot, 'FontWeight', 'bold');
+        set(gca, 'YTick', linspace(rejuvenationnumberplot(1), rejuvenationnumberplot(end), size(rejuvenationnumberplot, 2)));
+        set(gca, 'YTickLabel', rejuvenationnumberplot, 'FontWeight', 'bold');
         axis square;
-        title('D_{KL}');
+        title('D_{KL}', 'FontSize', 14);
         colormap(map);
-        xlabel('Ensemble Size', 'FontSize', 10, 'FontWeight', 'bold');
-        ylabel('Rejuvetion', 'FontSize', 10, 'FontWeight', 'bold');
+        xlabel('Ensemble Size', 'FontSize', 11, 'FontWeight', 'bold');
+        ylabel('Rejuvenation', 'FontSize', 11, 'FontWeight', 'bold');
 end
 
 end

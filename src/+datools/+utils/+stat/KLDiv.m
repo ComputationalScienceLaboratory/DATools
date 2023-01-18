@@ -10,8 +10,7 @@
 function [xs, pval, KLVal] = KLDiv(pdf1, pdf2)
 
 if numel(pdf1) ~= numel(pdf2)
-    fprintf('Both vectors must be of same length');
-    return;
+    error('Both vectors must be of same length');
 end
 
 % check if the distributions are normalized
