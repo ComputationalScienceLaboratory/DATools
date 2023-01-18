@@ -2,43 +2,69 @@
 clear all; close all; clc;
 % user defines the filter and everything that are required
 % model = Lorenz63
-% filtername = 'EnKF';
-% filtername = 'ETKF';
+% filtername = 'EnKF';(D)
+% filtername = 'ETKF';(D)
 % filtername = 'ETPF';
+% filtername = 'ETPF2';
 % filtername = 'SIR';
 % filtername = 'RHF';
+% filtername = 'SIS_EnKF';
+
 %
 % Lorenz96
 % filtername = 'EnKF';
 % filtername = 'ETKF';
-% filtername = 'ETPF';
-% filtername = 'SIR';
+% filtername = 'LETPF';
 % filtername = 'LETKF';
 % filtername = 'RHF';
 
+% QG
+% filtername = 'EnKF';
+% filtername = 'ETKF';
+% filtername = 'LETKF';
+
 %% User inputs
-user.modelname = 'Lorenz63';
+options.modelname = 'QG';
 
-user.filtername = 'EnKF';
+options.filtername = 'ETKF';
 
-user.ensNs = [25, 50, 75, 100];
+%options.ensNs = [8, 12, 16, 20, 24, 28, 32];%[25, 50, 75, 100];
+options.ensNs = [16, 32, 48, 64, 80, 96, 112];
+%options.ensNs = [32, 48, 64, 80, 96, 112, 128];
+%options.ensNs = [32, 64, 128, 256, 512, 1024, 2048];
 
-user.infs = [1.01, 1.02, 1.05];
 
-user.variance = 1; % observation variance
+options.infs = round(linspace(1, 1.10, 7), 2);    % [1, 1.025, 1.05, 1.075, 1.10];
 
-user.rejs = round(2*logspace(-2, -1, 4), 2);
+options.variance = 1; % observation variance
 
-user.spinups = 2;
+options.observeindicies = linspace(0,8001,150);  % observation indices
 
-user.steps = 11 * user.spinups; % change as deemed fit
+options.rejs = round(logspace(-1.5, -0.25, 7), 2); % round(2*logspace(-1.5, -0.5, 6), 2)
 
-user.Dt = 0.12; % 0.12(L63), 0.05(L96)
+options.spinups = 50;
 
-user.odesolver = 'ode45'; % ode45 , RK4
+options.steps = 11 * options.spinups; % change as deemed fit
 
-user.localize = false;
+options.Dt = 0.0109; % 0.12(L63), 0.05(L96), 0.0109(QG)
+
+options.odesolver = 'ode45'; % ode45 , RK4
+
+options.localize = false; % set to true if localization is needed
+
+options.localizationradius = 4; % localization radius
+
+options.ns = 10;
+
+options.histvar = 1:1:1;
+options.RHmeasure = 'Truth';
+
+%plotting parameters
+options.rankhistogramplotindex = 1:2:numel(options.ensNs);
+options.rmseplotindex = 1:2:numel(options.ensNs);
+options.rmseheatmapplotindex = 1:2:numel(options.ensNs);
+options.kldivergenceplotindex = 1:2:numel(options.ensNs);
 
 %%
 % call the experiment file
-datools.examples.sandu.runexperiments(user);
+datools.examples.sandu.runexperiments2(options);
