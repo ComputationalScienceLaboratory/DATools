@@ -1,9 +1,10 @@
-classdef Nonlinear < datools.observation.Observation
+classdef Nonlinear < datools.observation.operator.Observation
+%NONLINEAR Defines the non linear observation operator
 
     properties
         F
-        %J
-        Indicies
+        Jacobian    % Jacobian of non-linear Observation operator
+        Indicies    % Indices of observed state
     end
 
     methods
@@ -12,16 +13,16 @@ classdef Nonlinear < datools.observation.Observation
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'F', @(~, x) x);
-            %addParameter(p, 'J', @(~, x) speye(numel(x)));
+            addParameter(p, 'Jacobian', @(~, x) speye(numel(x)));
             addParameter(p, 'Indicies', 1);
             parse(p, varargin{:});
 
             s = p.Results;
 
-            obj@datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.operator.Observation(nvars, p.Unmatched);
 
             obj.F = s.F;
-            %obj.J = s.J;
+            obj.Jacobian = s.Jacobian;
             obj.Indicies = s.Indicies;
 
         end
@@ -32,8 +33,10 @@ classdef Nonlinear < datools.observation.Observation
         end
 
         function H = linearization(obj, t, x)
-            %H = obj.J(t, x);
-            H = 1;
+            H = obj.Jacobian(t, x);
+            if size(H, 1) == size(H, 2)
+                H = H(obj.Indices, :);
+            end
         end
 
     end

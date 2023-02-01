@@ -1,7 +1,9 @@
-classdef Linear < datools.observation.Observation
+classdef Linear < datools.observation.operator.Observation
+%LINEAR Defines the linear observation operator
+%   H is already linearized
 
     properties
-        H
+        H    % Observation operator
     end
 
     methods
@@ -14,7 +16,7 @@ classdef Linear < datools.observation.Observation
 
             s = p.Results;
 
-            obj@datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.operator.Observation(nvars, p.Unmatched);
 
             obj.H = s.H;
 

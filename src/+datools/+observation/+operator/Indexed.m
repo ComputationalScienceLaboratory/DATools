@@ -1,7 +1,8 @@
-classdef Indexed < datools.observation.Observation
+classdef Indexed < datools.observation.operator.Observation
+%INDEXED Defines the indexed observation operator
 
     properties
-        Indices
+        Indices    % Indices of observed state
     end
 
     methods
@@ -14,7 +15,7 @@ classdef Indexed < datools.observation.Observation
 
             s = p.Results;
 
-            obj@datools.observation.Observation(nvars, p.Unmatched);
+            obj@datools.observation.operator.Observation(nvars, p.Unmatched);
 
             obj.Indices = s.Indices;
 

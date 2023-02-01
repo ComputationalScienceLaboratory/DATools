@@ -1,21 +1,25 @@
 classdef Model < handle
+%MODEL this is the base model class 
+%   Handles all the data pertaining to a given model
+%   User can use OTP model or define their own
+%   User may define their choice of time integration method (or MATLODE)
+%   Model errors can be incorporated using the SynthError
 
     properties
-        ODEModel
-        Solver
-        SynthError
+        ODEModel      % The ODE model from OTP or user defined                  
+        Solver        % Time Integration Scheme
+        SynthError    % Model Error
+        TimeSpan      % Time Span for Propogating the Model
     end
 
     properties (Dependent)
-        State
-        NumVars
-        TimeSpan
-        DistanceFunction
+        State               % Sates of the Model
+        NumVars             % Number of State Variables
+        DistanceFunction    % Distance Function for Localization
     end
 
     methods
         function obj = Model(varargin)
-
 
             p = inputParser;
             addRequired(p, 'ODEModel'); %, @(x) isa(x, 'csl.odetestproblems.Problem'));
@@ -28,6 +32,7 @@ classdef Model < handle
             obj.ODEModel = s.ODEModel;
             obj.Solver = s.Solver;
             obj.SynthError = s.SynthError;
+            obj.TimeSpan = obj.ODEModel.TimeSpan;
 
         end
 
@@ -64,9 +69,9 @@ classdef Model < handle
             end
 
             if ~isempty(params)
-                [t, y] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
+                [t, y] = obj.Solver(@(t, y) obj.ODEModel.F(t, y, params), tspan, y0);
             else
-                [t, y] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
+                [t, y] = obj.Solver(obj.ODEModel.F, tspan, y0);
             end
 
             time = t(end) - t(1);
@@ -93,11 +98,6 @@ classdef Model < handle
 
         end
 
-        function timespan = get.TimeSpan(obj)
-
-            timespan = obj.ODEModel.TimeSpan;
-
-        end
 
         function distfn = get.DistanceFunction(obj)
 

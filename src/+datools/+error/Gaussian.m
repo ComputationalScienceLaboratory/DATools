@@ -1,8 +1,10 @@
 classdef Gaussian < datools.error.Error
+%GAUSSIAN Gaussian child class for adding gaussina noise with a user
+%   defined deviation and bias
 
     properties
-        CovarianceSqrt
-        Bias
+        CovarianceSqrt    % Covariance(sqrt) for the noise
+        Bias              % Bias
     end
 
     methods

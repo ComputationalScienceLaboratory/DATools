@@ -1,8 +1,10 @@
 classdef Observation < handle
+%OBSERVATION Base class for every observation operator
+%   other details 
 
     properties
-        NumVars
-        ErrorModel
+        NumVars      % number of state variables
+        ErrorModel   % observation error model
     end
 
     methods
