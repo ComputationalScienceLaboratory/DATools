@@ -1,4 +1,4 @@
-classdef Nonlinear < datools.observation.operator.Observation
+classdef NonlinearObservation < datools.observation.operator.Observation
 %NONLINEAR Defines the non linear observation operator
 
     properties
@@ -9,7 +9,7 @@ classdef Nonlinear < datools.observation.operator.Observation
 
     methods
 
-        function obj = Nonlinear(nvars, varargin)
+        function obj = NonlinearObservation(nvars, varargin)
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'F', @(~, x) x);

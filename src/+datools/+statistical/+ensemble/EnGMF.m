@@ -2,14 +2,21 @@ classdef EnGMF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             n = size(xf, 1);
-
+            
+            R = obj.Observation.Covariance;
+            
             beta = ((4/(n + 2))^(2/(n + 4)))*((ensN)^(-2/(n + 4)));
 
             xfm = mean(xf, 2);
@@ -23,11 +30,11 @@ classdef EnGMF < datools.statistical.ensemble.EnF
 
             dS = decomposition((HAf * HAf.') + R, 'chol');
 
-            xtilde = xf - (Af*HAf.')*(dS\(Hxf - y));
+            xtilde = xf - (Af*HAf.')*(dS\(Hxf - obj.Observation.Y));
             Aa = xtilde - mean(xtilde, 2);
             Aa = sqrt(beta)*Aa/sqrt(ensN - 1);
 
-            t0 = (Hxf - y);
+            t0 = (Hxf - obj.Observation.Y);
 
             as = (-0.5 * sum(t0.*(dS \ t0), 1)).';
             m = max(as);

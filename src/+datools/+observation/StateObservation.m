@@ -3,10 +3,10 @@ classdef StateObservation < handle
     %   Observed state are noisy snapshots of reality (truth)
 
     properties
-        Y         % Current Observation of States (maybe sparse)
-        R         % Observation Error Covariance
-        Noise     % Noise
-        NumObs    % Number of Observations(Make sure > 0)
+        Y             % Current Observation of States (maybe sparse)
+        Covariance    % Observation Error Covariance
+        Noise         % Noise
+        NumObs        % Number of Observations(Make sure > 0)
     end
     
     methods
@@ -30,11 +30,11 @@ classdef StateObservation < handle
             unMatched = p.Unmatched;
             
             p = inputParser;
-            addParameter(p, 'R', speye(obj.NumObs));
+            addParameter(p, 'Covariance', speye(obj.NumObs));
             
             parse(p, unMatched);
             s = p.Results;
-            obj.R = s.R;
+            obj.Covariance = s.Covariance;
         end
         
         function updateY(obj, y)

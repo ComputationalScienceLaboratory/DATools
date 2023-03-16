@@ -35,16 +35,21 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function analysis(obj, R, y)
-
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-
+            
+            R = obj.Observation.Covariance;
 
             xfm = mean(xf, 2);
             n = numel(xfm);
@@ -101,7 +106,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             TT = (eye(ensN+ensNW) - ZZ.' / S * ZZ);
 
-            d = y - Hxfm;
+            d = obj.Observation.Y - Hxfm;
 
             AAa = [Afs, ws] * real(sqrtm(TT));
             Aa = sqrt(ensN-1) * AAa(:, 1:ensN) / sqrt(1-gamma);

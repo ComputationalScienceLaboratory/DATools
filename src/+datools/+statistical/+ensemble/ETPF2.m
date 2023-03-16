@@ -2,14 +2,20 @@ classdef ETPF2 < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior).
             tau = obj.Rejuvenation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
 
             dR = decomposition(R, 'chol');
 
@@ -26,7 +32,7 @@ classdef ETPF2 < datools.statistical.ensemble.EnF
                 xdist(i, :) = vecnorm(xtemp).^2;
             end
 
-            t0 = Hxf - y;
+            t0 = Hxf - obj.Observation.Y;
 
             % more efficient way of calculating weights
             as = (-0.5 * sum(t0.*(dR \ t0), 1)).';

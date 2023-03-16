@@ -3,7 +3,12 @@ classdef ETKF < datools.statistical.ensemble.EnF
     methods
 
         function analysis(obj)
-
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
@@ -11,7 +16,7 @@ classdef ETKF < datools.statistical.ensemble.EnF
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-            R = obj.Observation.R;
+            R = obj.Observation.Covariance;
 
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);

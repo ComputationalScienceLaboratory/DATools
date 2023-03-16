@@ -22,7 +22,7 @@ classdef Gaussian < datools.error.Error
         end
 
         function xp = adderr(obj, ~, x)
-            A = obj.CovarianceSqrt * randn(size(x, 1), size(x, 2));
+            A = obj.CovarianceSqrt * randn(size(x), 'like', x);
             xp = x + A + obj.Bias;
         end
 

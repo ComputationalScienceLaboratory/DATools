@@ -20,7 +20,7 @@ classdef Laplace < datools.error.Error
         end
 
         function xp = adderr(obj, ~, x)
-            X = obj.CovarianceSqrt * randn(size(x, 1), size(x, 2));
+            X = obj.CovarianceSqrt * randn(size(x), 'like', x);
             Z = exprnd(1, 1, size(x, 2));
             Y = sqrt(Z) .* X;
             xp = x + Y + obj.Bias;

@@ -2,8 +2,13 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
             tau = obj.Rejuvenation;
             tc = obj.Model.TimeSpan(1);
@@ -13,7 +18,9 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             w = obj.Weights;
 
             modelsize = size(xf, 1);
-            obsize = size(y, 1);
+            obsize = size(obj.Observation.Y, 1);
+            
+            R = obj.Observation.Covariance;
 
             % EnKF
             xfm = mean(xf, 2);
@@ -39,7 +46,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             S = HPfHt + R;
             dS = decomposition(S, 'chol');
 
-            u = xf + PfHt * (dS \ (y - Hxfm));
+            u = xf + PfHt * (dS \ (obj.Observation.Y - Hxfm));
             t0 = PfHt * (dS \ (sqrtm(R) * randn(obsize, ensN)));
             xa = t0 + u;
 
@@ -51,7 +58,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             prop = exp(-0.5*sum(t0.*(V \ t0), 1)).';
 
             Hxa = obj.Observation.observeWithoutError(tc, xa);
-            t0 = Hxa - y;
+            t0 = Hxa - obj.Observation.Y;
             lik = exp(-0.5*sum(t0.*(R \ t0), 1)).';
 
             % If model error is present, need to calculate the probabilities of evolution

@@ -4,13 +4,20 @@ classdef EnKF < datools.statistical.ensemble.EnF
     methods
 
         function analysis(obj)
-
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
 
             xfm = mean(xf, 2);
 
@@ -38,12 +45,12 @@ classdef EnKF < datools.statistical.ensemble.EnF
             PfHt = rhoHt .* ((1 / (ensN - 1)) * (Af * (HAf.')));
             HPfHt = HrhoHt .* ((1 / (ensN - 1)) * (HAf * (HAf.')));
 
-            S = HPfHt + obj.Observation.R;
+            S = HPfHt + R;
             dS = decomposition(S, 'chol');
             d = obj.Observation.Y - Hxfm;
 
             xam = xfm + PfHt * (dS \ d);
-            Aa = Af + PfHt * (dS \ (sqrtm(obj.Observation.R) *...
+            Aa = Af + PfHt * (dS \ (sqrtm(R) *...
                 randn(size(HAf)) - HAf));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;

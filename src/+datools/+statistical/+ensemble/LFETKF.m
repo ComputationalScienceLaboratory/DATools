@@ -35,15 +35,21 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function analysis(obj, R, y)
-
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
 
 
             xfm = mean(xf, 2);
@@ -118,7 +124,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
                 TT = (eye(ensN+ensNW) - ZZTSiZZ);
 
-                d = y - Hxfm;
+                d = obj.Observation.Y - Hxfm;
 
                 AAa = [Afs, ws] * real(sqrtm(TT));
                 Aa(k, :) = sqrt(ensN-1) * AAa(k, 1:ensN) / sqrt(1-gamma);

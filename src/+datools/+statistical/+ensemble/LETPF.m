@@ -32,8 +32,13 @@ classdef LETPF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             tau = obj.Rejuvenation;
 
             tc = obj.Model.TimeSpan(1);
@@ -41,6 +46,8 @@ classdef LETPF < datools.statistical.ensemble.EnF
             xf = obj.Ensemble;
             n = size(xf, 1);
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
 
             AeqT = [kron(speye(ensN), ones(1, ensN)); kron(ones(ensN, 1), speye(ensN)).'];
             lbT = zeros((ensN)*ensN, 1);
@@ -51,7 +58,7 @@ classdef LETPF < datools.statistical.ensemble.EnF
             xdist = zeros(ensN, ensN);
 
 
-            t0 = Hxf - y;
+            t0 = Hxf - obj.Observation.Y;
 
             xa = xf;
 

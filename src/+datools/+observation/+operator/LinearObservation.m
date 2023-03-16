@@ -1,33 +1,33 @@
-classdef Indexed < datools.observation.operator.Observation
-%INDEXED Defines the indexed observation operator
+classdef LinearObservation < datools.observation.operator.Observation
+%LINEAR Defines the linear observation operator
+%   H is already linearized
 
     properties
-        Indices    % Indices of observed state
+        H    % Observation operator
     end
 
     methods
 
-        function obj = Indexed(nvars, varargin)
+        function obj = LinearObservation(nvars, varargin)
             p = inputParser;
             p.KeepUnmatched = true;
-            addParameter(p, 'Indices', 1);
+            addParameter(p, 'H', speye(nvars));
             parse(p, varargin{:});
 
             s = p.Results;
 
             obj@datools.observation.operator.Observation(nvars, p.Unmatched);
 
-            obj.Indices = s.Indices;
+            obj.H = s.H;
 
         end
 
         function y = observeWithoutError(obj, ~, x)
-            y = x(obj.Indices, :);
+            y = obj.H * x;
         end
 
         function H = linearization(obj, ~, ~)
-            I = speye(obj.NumVars);
-            H = I(obj.Indices, :);
+            H = obj.H;
         end
 
     end

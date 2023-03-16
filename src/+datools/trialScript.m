@@ -6,7 +6,7 @@ close all;
 Delta_t = 0.12;
 
 % define steps and spinups
-spinup = 500;
+spinup = 50;
 steps = 11 * spinup;
 
 %% define the ODE Model
@@ -36,16 +36,16 @@ R = (sqrt(8)/ 1) * speye(numStateObserved);
 obsErrorModel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 
 % Observation Operator
-observationOperator = datools.observation.operator.Indexed(model.NumVars, ...
+observationOperator = datools.observation.operator.IndexedObservation(model.NumVars, ...
     'ErrorModel', obsErrorModel, ...
     'Indices', observeIndicies);
 
 % Observation
-observation = datools.observation.StateObservation('R', R, 'Noise', obsErrorModel, ...
+observation = datools.observation.StateObservation('Covariance', R, 'Noise', obsErrorModel, ...
     'NumObs', numStateObserved);
 
 % Observation model to map from state space to observation space
-stateToObservation = datools.observation.operator.Linear(truth.NumVars, ...
+stateToObservation = datools.observation.operator.LinearObservation(truth.NumVars, ...
     'H', speye(truth.NumVars));
 
 % create random ensemble generator
@@ -54,6 +54,7 @@ ensembleGenerator = @(N) randn(model.NumVars, N);
 %% define ensemble and inflation
 ensNs = [5, 15, 25, 50];
 infs = [1.01, 1.02, 1.05, 1.10];
+rejs = round(logspace(-1.5, -0.25, 7), 2);
 
 rmses = inf * ones(numel(ensNs), numel(infs));
 
@@ -84,7 +85,7 @@ for runn = runsLeft.'
         %             localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
         %         end
         
-        filter = datools.statistical.ensemble.ETKF('Model', model, ...
+        filter = datools.statistical.ensemble.EnKF('Model', model, ...
             'ObservationOperator', observationOperator, ...
             'Observation', observation, ...
             'NumEnsemble', ensN, ...

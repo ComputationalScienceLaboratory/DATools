@@ -26,13 +26,23 @@ classdef RHF < datools.statistical.ensemble.EnF
             obj.DiscretePoint = s.DiscretePoint;
         end
 
-        function analysis(obj, R, y)
+        function analysis(obj)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
             tc = obj.Model.TimeSpan(1);
 
             % get the current ensemble forecast
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
+            
+            y = obj.Observation.Y;
 
             % calculate mean and variance of the forecast
             xfm = mean(xf, 2);
