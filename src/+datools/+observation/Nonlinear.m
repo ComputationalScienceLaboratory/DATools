@@ -31,9 +31,14 @@ classdef Nonlinear < datools.observation.Observation
             y = yfull(obj.Indices, :);
         end
 
-        function H = linearization(obj, t, x)
-            H = obj.Jacobian(t, x);
-            if size(H, 1) == size(H, 2)
+        function H = linearization(obj, t, x, v)
+            if nargin < 4
+                H = obj.Jacobian(t, x);
+                if size(H, 1) == size(H, 2)
+                    H = H(obj.Indices, :);
+                end
+            else
+                H = obj.Jacobian(t, x, v);
                 H = H(obj.Indices, :);
             end
         end
