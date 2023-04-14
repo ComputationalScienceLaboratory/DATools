@@ -89,17 +89,17 @@ classdef ThreeDVar < handle
             t = obj.Model.TimeSpan(end);
 
             H = @(x) obs.observeWithoutError(t, x);
-            Hadjoint = @(x) obs.linearization(t, x).';
+            Hadjoint = @(x) obs.linearization(t, x)';
 
             J = @(x) cost(x, xb, dB, y, dR, H, Hadjoint);
 
             if strcmp(obj.OptAlg, 'lbfgs')
                 opts = optimoptions('fmincon','Display','none', ...
                     'SpecifyObjectiveGradient',true, ...
-                    'HessianApproximation', {'lbfgs', 30});
+                    'HessianApproximation', {'lbfgs', 50});
             else
 
-                hessv = @(Hax, v) dB\v + Hax*(dR\(Hax.'*v));
+                hessv = @(Hax, v) dB\v + Hax*(dR\(Hax'*v));
                 opts = optimoptions('fmincon','Display','none', ...
                     'Algorithm','trust-region-reflective', ...
                     'SpecifyObjectiveGradient',true, ...
@@ -121,7 +121,7 @@ classdef ThreeDVar < handle
                 Bix = dB\dx;
                 Riy = dR\dy;
 
-                c = 0.5*((dx.'*Bix) + (dy.'*Riy));
+                c = 0.5*((dx'*Bix) + (dy'*Riy));
                 g = Bix + Hax*Riy;
                 hessinfo = Hax;
 
