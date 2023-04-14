@@ -1,5 +1,5 @@
 classdef ThreeDVar < handle
-    % 
+    %
 
     properties
         Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
@@ -7,6 +7,7 @@ classdef ThreeDVar < handle
         Observation % type of obervation
         State % current state values for all the states
         B % background covariance
+        OptAlg % lbfgs or newton
     end
 
     properties (Dependent)
@@ -25,12 +26,15 @@ classdef ThreeDVar < handle
             %   VARARGIN and updates the properties/attributes of the object
             %   (OBJ) of this class or a derived class
 
+            optAlgValFcn = @(x) (strcmp(x, 'lbfgs') || strcmp(x, 'newton'));
+
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
             addParameter(p, 'ModelError', datools.error.Error);
             addParameter(p, 'InitialState', []);
             addParameter(p, 'BackgroundCovariance', []);
+            addParameter(p, 'OptimizationType', 'lbfgs', optAlgValFcn);
             parse(p, varargin{:});
 
             s = p.Results;
@@ -40,6 +44,7 @@ classdef ThreeDVar < handle
             obj.State = s.InitialState;
             obj.B = s.BackgroundCovariance;
             obj.BDecomposition = decomposition(obj.B, 'chol');
+            obj.OptAlg = s.OptimizationType;
 
             kept = p.Unmatched;
 
@@ -66,9 +71,18 @@ classdef ThreeDVar < handle
         end
 
         function analysis(obj, R, y)
+
+            % A constrained problem like double pendulum will need a
+            % constraint coming in from the object.
+
             dB = obj.BDecomposition;
-            dR = decomposition(R, 'chol');
-            
+
+            if strcmp(class(R), "decomposition")
+                dR = R;
+            else
+                dR = decomposition(R, 'chol');
+            end
+
             xb = obj.State;
             obs = obj.Observation;
 
@@ -76,27 +90,41 @@ classdef ThreeDVar < handle
 
             H = @(x) obs.observeWithoutError(t, x);
             Hadjoint = @(x) obs.linearization(t, x).';
-            
+
             J = @(x) cost(x, xb, dB, y, dR, H, Hadjoint);
 
-            opts = optimoptions('fmincon','Display','none','SpecifyObjectiveGradient',true, ...
-                'HessianApproximation', {'lbfgs', 50});
-            xa = fmincon(J, xb, [],[],[],[],[],[],[], opts);
+            if strcmp(obj.OptAlg, 'lbfgs')
+                opts = optimoptions('fmincon','Display','none', ...
+                    'SpecifyObjectiveGradient',true, ...
+                    'HessianApproximation', {'lbfgs', 30});
+            else
+
+                hessv = @(Hax, v) dB\v + Hax*(dR\(Hax.'*v));
+                opts = optimoptions('fmincon','Display','none', ...
+                    'Algorithm','trust-region-reflective', ...
+                    'SpecifyObjectiveGradient',true, ...
+                    'HessianMultiplyFcn', hessv, ...
+                    'SubproblemAlgorithm', 'cg');
+
+            end
+
+            xa = fmincon(J, xb, [], [], [], [], [], [], [], opts);
 
             obj.State = xa;
 
-            function [c, g] = cost(x, xb, dB, y, dR, H, Hadjoint)
-                
-                Hx = H(x);
+            function [c, g, hessinfo] = cost(x, xb, dB, y, dR, H, Hadjoint)
 
-                Bix = dB\(x - xb);
+                dx = x - xb;
+                dy = H(x) - y;
+                Hax = Hadjoint(x);
 
-                Riy = dR\(Hx - y);
-                
-                c = 0.5*(x - xb).'*Bix + 0.5*(Hx - y).'*Riy;
+                Bix = dB\dx;
+                Riy = dR\dy;
 
-                g = Bix + Hadjoint(x)*Riy;
-                
+                c = 0.5*((dx.'*Bix) + (dy.'*Riy));
+                g = Bix + Hax*Riy;
+                hessinfo = Hax;
+
             end
 
 

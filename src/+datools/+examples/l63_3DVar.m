@@ -35,7 +35,8 @@ observeindicies = 1:3;
 
 nobsvars = numel(observeindicies);
 
-R = (1 / 1) * speye(nobsvars);
+R = (8 / 1) * speye(nobsvars);
+dR = decomposition(R, 'chol');
 
 obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
 observation = datools.observation.Indexed(model.NumVars, ...
@@ -52,13 +53,14 @@ B = [0.86, 0.86, -0.02; ...
     0.86, 1.1149, -0.01; ...
     -0.02, -0.01, 1.02];
 
-B = 2*B;
+B = 8*B;
 
 meth = datools.variational.ThreeDVar(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'InitialState', nature.State, ...
-    'BackgroundCovariance', B);
+    'BackgroundCovariance', B, ...
+    'OptimizationType', 'newton');
 
 spinup = 200;
 times = 2200;
@@ -84,7 +86,7 @@ for i = 1:times
     % analysis
     %try
     if do_filter
-        meth.analysis(R, y);
+        meth.analysis(dR, y);
     end
     %catch
     %    do_enkf = false;
