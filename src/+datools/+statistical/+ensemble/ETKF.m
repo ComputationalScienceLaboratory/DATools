@@ -20,7 +20,7 @@ classdef ETKF < datools.statistical.ensemble.EnF
 
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);
-            Af = inflation * Af/sqrt(ensN - 1);
+            Af = inflation*Af/sqrt(ensN - 1);
             xf = repmat(xfm, 1, ensN) + Af*sqrt(ensN - 1);
 
             Hxf = obj.ObservationOperator.observeWithoutError(tc, xf);
@@ -29,10 +29,10 @@ classdef ETKF < datools.statistical.ensemble.EnF
             HAf = HAf/sqrt(ensN - 1);
 
             dS = decomposition((HAf * HAf.')+ R, 'chol');
+
             dR = decomposition(R, 'chol');
 
-            temp = dS \ HAf;
-            T = sqrtm(eye(ensN)-(HAf.' * temp));
+            T = sqrtm(eye(ensN) - (HAf.'*(dS\HAf)));
 
             Aa = Af * T;
             xam = xfm + ((Aa * (HAf * T).') * (dR \ (obj.Observation.Y - Hxfm)));
@@ -40,7 +40,7 @@ classdef ETKF < datools.statistical.ensemble.EnF
 
             obj.Ensemble = xa;
 
-            obj.Weights = ones(ensN, 1) / ensN;
+            obj.Weights = ones(ensN, 1)/ensN;
 
         end
 
