@@ -6,6 +6,8 @@ load(filepath);
 f1 = figure;
 f2 = figure;
 
+filtertype = 'Ensemble';
+
 switch filtertype
     case 'Ensemble'
         infs = infs;

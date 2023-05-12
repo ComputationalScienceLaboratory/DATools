@@ -1,4 +1,4 @@
-classdef Gaussian < datools.error.Error
+classdef Gaussian < datools.error.Uncertainty
 %GAUSSIAN Gaussian child class for adding gaussina noise with a user
 %   defined deviation and bias
 
@@ -21,10 +21,14 @@ classdef Gaussian < datools.error.Error
             obj.Bias = s.Bias;
         end
 
-        function xp = adderr(obj, ~, x)
-            A = obj.CovarianceSqrt * randn(size(x), 'like', x);
-            xp = x + A + obj.Bias;
+
+        function error = sample(obj, ~, x)
+            error = obj.Bias + obj.CovarianceSqrt * randn(size(x), 'like', x);
         end
+
+        % function xp = addError(obj, ~, x)
+        %     xp = x + obj.sample([], x);
+        % end
 
     end
 

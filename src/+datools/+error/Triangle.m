@@ -1,4 +1,4 @@
-classdef Triangle < datools.error.Error
+classdef Triangle < datools.error.Uncertainty
 
     properties
         Lower

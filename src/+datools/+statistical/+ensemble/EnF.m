@@ -1,28 +1,25 @@
 classdef EnF < datools.DABase
-%ENF This is the base class for all statistical methods
-%   Derive from this class and implement methods/functions as required
-%   Deriving from handle base class allows an object of this class to be
-%   passed by reference.
+    %ENF This is the base class for all statistical methods
+    %   Derive from this class and implement methods/functions as required
+    %   Deriving from handle base class allows an object of this class to be
+    %   passed by reference.
 
     properties
-        %Model                 % type of ODE solver and the model 
-        %ModelError            % type err
-        %Observation           % type of obervation
-        Ensemble               % current ensemble values for all the states
-        Anomalies              % Anomalies
-        Weights                % Weight of each particle/ensemble
-        Inflation              % inflation constant
-        Rejuvenation           % rejuvenation constant
-        Localization           % A boolean if localization needs to be used
-        Parallel               % A boolean if parallel threads are used
-        RankHistogram          % State variables for which RH is needed
-        RankValue              % store the RH values for each state variables required
-        ResamplingThreshold    % threshold below which resampling needs to be done
+        Ensemble % current ensemble values for all the states
+        Anomalies % Anomalies
+        Weights % Weight of each particle/ensemble
+        Inflation % inflation constant
+        Rejuvenation % rejuvenation constant
+        Localization % A boolean if localization needs to be used
+        Parallel % A boolean if parallel threads are used
+        RankHistogram % State variables for which RH is needed
+        RankValue % store the RH values for each state variables required
+        ResamplingThreshold % threshold below which resampling needs to be done
     end
 
     properties (Dependent)
-        BestEstimate        % Current estimate of the particles/ensembles
-        NumEnsemble         % Number of ensemble members
+        BestEstimate % Current estimate of the particles/ensembles
+        NumEnsemble % Number of ensemble members
     end
 
     methods (Abstract)
@@ -43,7 +40,7 @@ classdef EnF < datools.DABase
 
             p = inputParser;
             p.KeepUnmatched = true;
-            
+
             %addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
             %addParameter(p, 'ModelError', datools.error.Error);
             addParameter(p, 'NumEnsemble', 1);
@@ -55,11 +52,11 @@ classdef EnF < datools.DABase
             addParameter(p, 'RankHistogram', []);
             addParameter(p, 'ResamplingThreshold', 0.5);
             addParameter(p, 'EnsembleGenerator', @(x, y) randn(x, y));
-            
+
             parse(p, varargin{:});
 
             s = p.Results;
-            
+
             obj@datools.DABase(p.Unmatched);
 
             obj.Inflation = s.Inflation;
@@ -69,13 +66,13 @@ classdef EnF < datools.DABase
             obj.RankHistogram = s.RankHistogram;
             obj.ResamplingThreshold = s.ResamplingThreshold;
             ensN = s.NumEnsemble;
-            
+
             if ~isempty(obj.RankHistogram)
                 RankValue = zeros(length(obj.RankHistogram), ensN+2);
             end
 
             obj.Ensemble = s.EnsembleGenerator(ensN);
-            obj.Anomalies = (1/sqrt(ensN)) * (obj.Ensemble - mean(obj.Ensemble, 2));
+            obj.Anomalies = (1 / sqrt(ensN)) * (obj.Ensemble - mean(obj.Ensemble, 2));
             %obj.Observation = s.Observation;
             obj.Weights = ones(ensN, 1) / ensN;
 
@@ -108,17 +105,34 @@ classdef EnF < datools.DABase
 
                 end
 
-                for ensi = 1:ensN
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.ODEModel.TimeSpan(end), ens(:, ensi));
+                if obj.AddErrorToModel
+                    for ensi = 1:ensN
+                        obj.Ensemble(:, ensi) = obj.ModelError.addError(obj.Model.ODEModel.TimeSpan(end), ens(:, ensi));
+                    end
+                else
+                    for ensi = 1:ensN
+                        obj.Ensemble(:, ensi) = obj.ModelError.addNoError(obj.Model.ODEModel.TimeSpan(end), ens(:, ensi));
+                    end
                 end
+
 
             else
-                for ensi = 1:obj.NumEnsemble
+                if obj.AddErrorToModel
+                    for ensi = 1:obj.NumEnsemble
+                        [time, yend] = obj.Model.solve([], obj.Ensemble(:, ensi));
+
+                        obj.Ensemble(:, ensi) = obj.ModelError.addError(obj.Model.ODEModel.TimeSpan(end), yend);
+                        times(ensi) = time;
+                    end
+                else
+                    for ensi = 1:obj.NumEnsemble
                     [time, yend] = obj.Model.solve([], obj.Ensemble(:, ensi));
 
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.ODEModel.TimeSpan(end), yend);
+                    obj.Ensemble(:, ensi) = obj.ModelError.addNoError(obj.Model.ODEModel.TimeSpan(end), yend);
                     times(ensi) = time;
                 end
+                end
+
             end
 
             obj.Model.update(mean(times), obj.BestEstimate);
@@ -159,7 +173,7 @@ classdef EnF < datools.DABase
             %   of the object of this class or a derived class to XAM
 
             X = obj.Ensemble;
-            ensN = size(X, 2);    % try obj.NumEnsemble
+            ensN = size(X, 2); % try obj.NumEnsemble
             xm = mean(X, 2);
             A = (X - repmat(xm, 1, ensN));
             X = repmat(xam, 1, ensN) + A;

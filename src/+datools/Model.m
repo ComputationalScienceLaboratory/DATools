@@ -1,21 +1,22 @@
 classdef Model < handle
-%MODEL this is the base model class 
-%   Handles all the data pertaining to a given model
-%   User can use OTP model or define their own
-%   User may define their choice of time integration method (or MATLODE)
-%   Model errors can be incorporated using the SynthError
+    %MODEL this is the base model class
+    %   Handles all the data pertaining to a given model
+    %   User can use OTP model or define their own
+    %   User may define their choice of time integration method (or MATLODE)
+    %   Model errors can be incorporated using the SynthError
 
     properties
-        ODEModel      % The ODE model from OTP or user defined                  
-        Solver        % Time Integration Scheme
-        SynthError    % Model Error
-        TimeSpan      % Time Span for Propogating the Model
+        ODEModel % The ODE model from OTP or user defined
+        Solver % Time Integration Scheme
+        SynthError % Model Error
+        AddError % boolean to add/not add noise during forward propogation
+        TimeSpan % Time Span for Propogating the Model
     end
 
     properties (Dependent)
-        State               % Sates of the Model
-        NumVars             % Number of State Variables
-        DistanceFunction    % Distance Function for Localization
+        State % Sates of the Model
+        NumVars % Number of State Variables
+        DistanceFunction % Distance Function for Localization
     end
 
     methods
@@ -24,7 +25,8 @@ classdef Model < handle
             p = inputParser;
             addRequired(p, 'ODEModel'); %, @(x) isa(x, 'csl.odetestproblems.Problem'));
             addRequired(p, 'Solver', @(x) nargin(x) == 3);
-            addParameter(p, 'SynthError', datools.error.Error);
+            addParameter(p, 'SynthError', []);
+            addParameter(p, 'AddError', false);
             parse(p, varargin{:});
 
             s = p.Results;
@@ -32,6 +34,7 @@ classdef Model < handle
             obj.ODEModel = s.ODEModel;
             obj.Solver = s.Solver;
             obj.SynthError = s.SynthError;
+            obj.AddError = s.AddError;
             obj.TimeSpan = obj.ODEModel.TimeSpan;
 
         end
@@ -80,9 +83,13 @@ classdef Model < handle
         end
 
         function update(obj, time, y0)
-
-            obj.ODEModel.Y0 = obj.SynthError.adderr(obj.ODEModel.TimeSpan(end)+time, y0);
-            obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
+            if obj.AddError
+                obj.ODEModel.Y0 = obj.SynthError.addError(obj.ODEModel.TimeSpan(end)+time, y0);
+                obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
+            else
+                obj.ODEModel.Y0 = obj.SynthError.addNoError(obj.ODEModel.TimeSpan(end)+time, y0);
+                obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
+            end
 
         end
 

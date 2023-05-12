@@ -2,9 +2,8 @@ classdef LETKF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
+        function analysis(obj)
 
-            %% Group sections
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
@@ -12,16 +11,20 @@ classdef LETKF < datools.statistical.ensemble.EnF
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
 
+            R = obj.Observation.Covariance;
+
+            y = obj.Observation.Y;
+
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation * Af / sqrt(ensN-1);
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = obj.ObservationOperator.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
             HAf = Hxf - repmat(Hxfm, 1, ensN);
 
-            Hi = obj.Observation.Indices;
+            Hi = obj.ObservationOperator.Indices;
 
             Aa = zeros(size(Af));
             xam = zeros(size(xfm));

@@ -1,4 +1,4 @@
-classdef Laplace < datools.error.Error
+classdef Laplace < datools.error.Uncertainty
 
     properties
         CovarianceSqrt

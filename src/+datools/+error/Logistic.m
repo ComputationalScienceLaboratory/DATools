@@ -1,4 +1,4 @@
-classdef Logistic < datools.error.Error
+classdef Logistic < datools.error.Uncertainty
 
     properties
         State

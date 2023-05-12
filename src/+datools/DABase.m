@@ -5,6 +5,7 @@ classdef DABase < handle
     properties
         Model                 % Model and solver information
         ModelError            % Model Error
+        AddErrorToModel       % boolean if we consider/ignore model error
         ObservationOperator   % Observation operator used (linear, non-linear, etc)
         Observation           % Curent snapshots of reality
     end
@@ -16,6 +17,7 @@ classdef DABase < handle
             
             addParameter(p, 'Model', []);
             addParameter(p, 'ModelError', []);
+            addParameter(p, 'AddErrorToModel', false);
             addParameter(p, 'ObservationOperator', []);
             addParameter(p, 'Observation', []);
             
@@ -25,6 +27,7 @@ classdef DABase < handle
             
             obj.Model = s.Model;
             obj.ModelError = s.ModelError;
+            obj.AddErrorToModel = s.AddErrorToModel;
             obj.ObservationOperator = s.ObservationOperator;
             obj.Observation = s.Observation;
         end

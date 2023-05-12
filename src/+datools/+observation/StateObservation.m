@@ -14,7 +14,7 @@ classdef StateObservation < handle
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'Y', []);
-            addParameter(p, 'Noise', datools.error.Error);
+            addParameter(p, 'Noise', []);
             validationFunction = @(x) (x>0);
             addParameter(p, 'NumObs', 1, validationFunction);
             
@@ -42,7 +42,7 @@ classdef StateObservation < handle
         end
         
         function addNoise(obj, t, ~)
-            obj.Y = obj.Noise.adderr(t, obj.Y);
+            obj.Y = obj.Noise.addError(t, obj.Y);
         end
     end
 
