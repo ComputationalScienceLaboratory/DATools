@@ -11,20 +11,20 @@ infs = [1.01, 1.02, 1.05, 1.10];
 rejs = round(logspace(-1.5, -0.25, 7), 2);
 
 % integration time-step
-Delta_t = 0.05;
+deltaT = 0.12;
 
 % filtername
-filtername = 'LETPF2';
+filterName = 'EnKF';
 
-filtertype = 'Particle';
-%filtertype = 'Ensemble';
+%filtertype = 'Particle';
+filterType = 'Ensemble';
 
 
 % model
-modelName = 'lorenz96';
+modelName = 'lorenz63';
 
 % define steps and spinups
-spinup = 50;
+spinup = 500;
 steps = 11 * spinup;
 
 % Set number of samples for different initialization
@@ -65,7 +65,7 @@ addErrorToModel = false; % default is false (for now)
 %         filtertype = 'Ensemble';
 % end
 fprintf('Filtername = %s, Observation Error Variance = %.2f, Runs = %d, spinups = %d\n', ...
-    filtername, variance, steps, spinup);
+    filterName, variance, steps, spinup);
 
 
 %% Preliminaries variables for plotting
@@ -88,7 +88,7 @@ polyvalmatrix = {};
 %% define the ODE Model
 odeOTP = otp.(modelName).presets.Canonical;
 odeModel = datools.ODEModel('OTPObject', odeOTP);
-odeModel.TimeSpan = [0, Delta_t];
+odeModel.TimeSpan = [0, deltaT];
 
 % define ODE solvers (time integrators) for truth and model
 solverModel = @(f, t, y) ode45(f, t, y);
@@ -140,7 +140,7 @@ runsLeft = find(rmses == inf);
 
 for runn = runsLeft.'
 
-    switch filtertype
+    switch filterType
         case 'Ensemble'
             [ensNi, infi] = ind2sub([numel(ensNs), numel(infs)], runn);
             reji = 0;
@@ -159,16 +159,16 @@ for runn = runsLeft.'
 
     sE = zeros(numSamples, 1);
 
-    rankvaluesample = zeros(numel(histVar), ensN+1, numSamples);
-    rmstempvalsample = nan * ones(steps-spinup, numSamples);
+    rankValueSample = zeros(numel(histVar), ensN+1, numSamples);
+    rmsTempValSample = nan * ones(steps-spinup, numSamples);
 
     for sample = 1:numSamples
         % Set rng for standard experiments
         rng(17+sample-1);
 
-        rmstempvalsampleinner = nan * ones(steps-spinup, 1);
+        rmsTempValSampleInner = nan * ones(steps-spinup, 1);
 
-        switch filtertype
+        switch filterType
             case 'Ensemble'
                 inflation = inflationAll;
                 rejuvenation = 0;
@@ -181,7 +181,7 @@ for runn = runsLeft.'
 
         if (localize)
             d = @(t, y, i, j) modelODE.DistanceFunction(t, y, i, j);
-            switch filtername
+            switch filterName
                 case 'EnKF'
                     localization = @(t, y, H) datools.tapering.gc(t, y, r, d, H);
                 case 'LETKF'
@@ -206,7 +206,7 @@ for runn = runsLeft.'
         end
 
 
-        filter = datools.statistical.ensemble.(filtername)('Model', model, ...
+        filter = datools.statistical.ensemble.(filterName)('Model', model, ...
             'ModelError', modelError, ...
             'AddErrorToModel', addErrorToModel, ...
             'NumEnsemble', ensN, ...
@@ -256,7 +256,7 @@ for runn = runsLeft.'
 
             % Rank histogram (if needed)
             datools.utils.stat.RH(filter, observation, xt, y, Hxa, measureRankHist);
-            rankvaluesample(:, :, sample) = filter.RankValue(:, 1:end-1);
+            rankValueSample(:, :, sample) = filter.RankValue(:, 1:end-1);
 
             error = xa - xt;
 
@@ -264,15 +264,45 @@ for runn = runsLeft.'
                 % capture the rmse
                 mses(i - spinup) = mean((error).^2);
                 rmse = sqrt(mean(mses(1:(i - spinup))));
-                rmse
 
-                %rmstempvalsampleinner(i - spinup) = rmse;
+                rmsTempValSampleInner(i - spinup) = rmse;
 
             end
 
         end
-
+        sE(sample) = rmse;
+        rmsTempValSample(:, sample) = rmsTempValSampleInner;
     end
 
+    rankvalue = mean(rankValueSample, 3);
+    rmstempval = mean(rmsTempValSample, 2);
+
+    resE = mean(sE);
+
+    switch filterType
+        case 'Ensemble'
+            rmses(ensNi, infi) = resE;
+
+            [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(rankvalue, ...
+                (1 / (ensN+1))*ones(1, ensN+1));
+            %rhplotval(ensNi, infi) = totalklval;
+        case 'Particle'
+            rmses(ensNi, reji) = resE;
+
+            [xs, pval, rhplotval(ensNi, reji)] = datools.utils.stat.KLDiv(rankvalue, ...
+                (1 / ensN)*ones(1, ensN+1));
+    end
+
+    % update all the variables for plotting
+    rankvalmatrix{runn} = rankvalue;
+    xvalmatrix{runn} = xs;
+    polyvalmatrix{runn} = pval;
+    rmsvalmatrix{runn} = rmstempval;    
 
 end
+
+filename = strcat(modelName, '_', filterName, '.mat');
+%filepath = strcat(pwd, '\+datools\+examples\+sandu\', filename);
+filepath = fullfile(pwd, '+datools', '+examples', '+v2', filename);
+save(filepath);
+datools.utils.plotexperiments(filepath);

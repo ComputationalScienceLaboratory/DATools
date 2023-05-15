@@ -88,6 +88,7 @@ for runn = 1:totalrunsplot
 %figure;
     subplot(numel(infsplot), numel(ensNsplot), rw*numel(ensNsplot)+cl);
     plot(spinup+1:1:steps, rmsvalmatrix{plotindices(runn)}, '.','MarkerSize', 8);
+    grid on;
     xlim([spinup + 1, steps]);
     ylim([0, variance]);
     set(gca, 'XTick', [spinup + 1, steps]);
@@ -135,7 +136,7 @@ rmsesnumberplot = rmses(rmseheatmapplotindex,rmseheatmapplotindex);
 switch filtertype
     case 'Ensemble'
         imagesc(ensemblenumberplot, inflationnumberplot, rmsesnumberplot.');
-        caxis([0, variance]);
+        clim([0, variance]);
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
@@ -149,7 +150,7 @@ switch filtertype
         set(gca, 'YTickLabel', inflationnumberplot, 'FontWeight', 'bold');
     case 'Particle'
         imagesc(ensemblenumberplot, rejuvenationnumberplot, rmsesnumberplot.');
-        caxis([0, variance]);
+        clim([0, variance]);
         colorbar;
         set(gca, 'YDir', 'normal');
         axis square;
@@ -181,7 +182,7 @@ rhsnumberplot = rhplotval(kldivergenceplotindex,kldivergenceplotindex);
 switch filtertype
     case 'Ensemble'
         imagesc(ensemblenumberplot, inflationnumberplot, rhsnumberplot.');
-        caxis([-1, 1]);
+        clim([-1, 1]);
         colorbar;
         set(gca, 'YDir', 'normal');
         set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
@@ -195,7 +196,7 @@ switch filtertype
         ylabel('Inflation', 'FontSize', 11, 'FontWeight', 'bold');
     case 'Particle'
         imagesc(ensemblenumberplot, rejuvenationnumberplot, rhsnumberplot.');
-        caxis([-0.1, 0.1]);
+        clim([-0.1, 0.1]);
         colorbar;
         set(gca, 'YDir', 'normal');
         set(gca, 'XTick', linspace(ensemblenumberplot(1), ensemblenumberplot(end), size(ensemblenumberplot, 2)));
