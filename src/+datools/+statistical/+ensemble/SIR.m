@@ -2,7 +2,7 @@ classdef SIR < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj)
+        function analysis(obj, observation)
             %ANALYSIS   Method to overload the analysis function
             %
             %   ANALYSIS(OBJ) assimilates the current observation with the
@@ -18,10 +18,10 @@ classdef SIR < datools.statistical.ensemble.EnF
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
             
-            R = obj.Observation.Covariance;
+            R = observation.ErrorModel.Covariance;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
-            t0 = Hxf - obj.Observation.Y;
+            Hxf = observation.observeWithoutError(tc, xf);
+            t0 = Hxf - observation.Y;
 
             dR = decomposition(R, 'chol');
             as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';

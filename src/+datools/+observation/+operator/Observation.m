@@ -4,9 +4,8 @@ classdef Observation < handle
 
     properties
         Y             % Current Observation of States (maybe sparse)
-        Covariance    % Observation Error Covariance
         NumVars      % number of state variables
-        ErrorModel   % observation error model
+        ErrorModel   % observation error object
         NumObs        % Number of Observations(Make sure > 0)
     end
 
@@ -29,19 +28,14 @@ classdef Observation < handle
             obj.ErrorModel = s.ErrorModel;
             obj.Y = s.Y;
             obj.NumObs = s.NumObs;
-
-            unMatched = p.Unmatched;
-            
-            p = inputParser;
-            addParameter(p, 'Covariance', speye(obj.NumObs));
-            
-            parse(p, unMatched);
-            s = p.Results;
-            obj.Covariance = s.Covariance;
         end
 
         function y = observeWithError(obj, t, x)
             y = obj.ErrorModel.addError(t, obj.observeWithoutError(t, x));
+        end
+
+        function updateY(obj, y)
+            obj.Y = y;
         end
 
         function y = observeWithoutError(~, ~, x)

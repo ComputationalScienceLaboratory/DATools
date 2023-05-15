@@ -18,13 +18,13 @@ classdef FETKF < datools.statistical.ensemble.EnF
             addParameter(p, 'SurrogateEnsembleSize', 2);
             addParameter(p, 'Laplace', false);
 
-            parse(p, varargin{2:end});
+            parse(p, varargin{7:end});
 
             s = p.Results;
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.statistical.ensemble.EnF(varargin{1:6}, kept);
 
             obj.B = s.B;
             obj.Bsqrt = s.Bsqrt;
@@ -35,7 +35,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function analysis(obj)
+        function analysis(obj, observation)
             %ANALYSIS   Method to overload the analysis function
             %
             %   ANALYSIS(OBJ) assimilates the current observation with the
@@ -49,7 +49,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-            R = obj.Observation.Covariance;
+            R = observation.ErrorModel.Covariance;
 
             xfm = mean(xf, 2);
             n = numel(xfm);
@@ -82,7 +82,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -93,7 +93,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
             w = w - repmat(mean(w, 2), 1, ensNW);
             ws = sqrt(gamma) * w / sqrt(ensNW-1);
 
-            Hw = obj.Observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
+            Hw = observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
             Hwm = mean(Hw, 2);
             HAw = Hw - repmat(Hwm, 1, ensNW);
 
@@ -106,7 +106,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             TT = (eye(ensN+ensNW) - ZZ.' / S * ZZ);
 
-            d = obj.Observation.Y - Hxfm;
+            d = observation.Y - Hxfm;
 
             AAa = [Afs, ws] * real(sqrtm(TT));
             Aa = sqrt(ensN-1) * AAa(:, 1:ensN) / sqrt(1-gamma);

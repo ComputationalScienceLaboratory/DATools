@@ -26,7 +26,7 @@ classdef EnF < datools.DABase
         % A method that will be implemented by child  classes to make
         % approximate inference on ensembles of states by combining
         % prior forecast/background data with noisy observations
-        analysis(obj)
+        analysis(obj, observation)
     end
 
 
@@ -130,7 +130,7 @@ classdef EnF < datools.DABase
 
                     obj.Ensemble(:, ensi) = obj.ModelError.addNoError(obj.Model.ODEModel.TimeSpan(end), yend);
                     times(ensi) = time;
-                end
+                    end
                 end
 
             end

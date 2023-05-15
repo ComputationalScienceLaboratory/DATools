@@ -1,4 +1,4 @@
-function RH(filter, xt, y, Hxa, observationvariable)
+function RH(filter, observation, xt, y, Hxa, observationvariable)
 %function to plot the rank histogram
 
 flag = isa(filter, 'datools.statistical.ensemble.EnF');
@@ -11,7 +11,7 @@ if nargin < 2
     exit;
 end
 var = length(filter.RankHistogram);
-varobservtion = filter.Observation.Indices;
+varobservtion = observation.Indices;
 xa = filter.Ensemble;
 [~, ensN] = size(xa);
 
