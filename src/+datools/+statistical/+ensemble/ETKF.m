@@ -2,33 +2,41 @@ classdef ETKF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = observation.ErrorModel.Covariance;
 
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation*Af/sqrt(ensN - 1);
             xf = repmat(xfm, 1, ensN) + Af*sqrt(ensN - 1);
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
             HAf = Hxf - repmat(Hxfm, 1, ensN);
             HAf = HAf/sqrt(ensN - 1);
 
-            dS = decomposition((HAf*HAf.') + R, 'chol');
+            dS = decomposition((HAf * HAf.')+ R, 'chol');
+
             dR = decomposition(R, 'chol');
 
             T = sqrtm(eye(ensN) - (HAf.'*(dS\HAf)));
 
-            Aa = Af*T;
-            xam = xfm + ((Aa*(HAf*T).')*(dR\(y - Hxfm)));
-            xa = repmat(xam, 1, ensN) + sqrt(ensN - 1)*Aa;
+            Aa = Af * T;
+            xam = xfm + ((Aa * (HAf * T).') * (dR \ (observation.Y - Hxfm)));
+            xa = sqrt(ensN-1) .* Aa + repmat(xam, 1, ensN);
 
             obj.Ensemble = xa;
 

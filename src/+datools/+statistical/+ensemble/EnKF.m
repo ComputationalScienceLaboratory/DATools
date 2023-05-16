@@ -3,14 +3,21 @@ classdef EnKF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
             tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = observation.ErrorModel.Covariance;
 
             xfm = mean(xf, 2);
 
@@ -19,7 +26,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -30,7 +37,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
                 rhoHt = ones(size(Af, 1), size(HAf, 1));
                 HrhoHt = ones(size(HAf, 1), size(HAf, 1));
             else
-                H = obj.Observation.linearization(tc, xfm);
+                H = observation.linearization(tc, xfm);
                 rhoHt = obj.Localization(tc, xfm, H);
                 HrhoHt = eye(size(H)) * rhoHt;
             end
@@ -40,10 +47,11 @@ classdef EnKF < datools.statistical.ensemble.EnF
 
             S = HPfHt + R;
             dS = decomposition(S, 'chol');
-            d = y - Hxfm;
+            d = observation.Y - Hxfm;
 
             xam = xfm + PfHt * (dS \ d);
-            Aa = Af + PfHt * (dS \ (sqrtm(R) * randn(size(HAf)) - HAf));
+            Aa = Af + PfHt * (dS \ (sqrtm(R) *...
+                randn(size(HAf)) - HAf));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
             %obj.Model.update(0, obj.BestEstimate);

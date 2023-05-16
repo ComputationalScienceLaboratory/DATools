@@ -2,7 +2,7 @@ classdef DEnKF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
+        function analysis(obj)
 
             inflation = obj.Inflation;
 
@@ -10,6 +10,8 @@ classdef DEnKF < datools.statistical.ensemble.EnF
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = obj.Observation.Covariance;
 
             xfm = mean(xf, 2);
 
@@ -43,7 +45,7 @@ classdef DEnKF < datools.statistical.ensemble.EnF
 
             Aa = Af - 0.5 * (PfHt * (dS \ HAf));
 
-            d = y - Hxfm;
+            d = obj.Observation.Y - Hxfm;
             xam = xfm + (PfHt * (dS \ d));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;

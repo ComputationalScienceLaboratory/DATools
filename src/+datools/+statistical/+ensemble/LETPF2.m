@@ -17,13 +17,13 @@ classdef LETPF2 < datools.statistical.ensemble.EnF
                 @(~, ~, inds, k) ...
                 spdiags([zeros(k-1, 1); 1; zeros(numel(inds)-k+1, 1)], 1, numel(inds), numel(inds)));
 
-            parse(p, varargin{2:end});
+            parse(p, varargin{7:end});
 
             s = p.Results;
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.statistical.ensemble.EnF(varargin{1:6}, kept);
 
             obj.LocalizationEnsembleDistance = s.LocalizationEnsembleDistance;
 
@@ -32,8 +32,13 @@ classdef LETPF2 < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             tau = obj.Rejuvenation;
 
             tc = obj.Model.TimeSpan(1);
@@ -41,22 +46,24 @@ classdef LETPF2 < datools.statistical.ensemble.EnF
             xf = obj.Ensemble;
             n = size(xf, 1);
             ensN = obj.NumEnsemble;
+            
+            R = observation.ErrorModel.Covariance;
 
             AeqT = [kron(speye(ensN), ones(1, ensN)); kron(ones(ensN, 1), speye(ensN)).'];
             lbT = zeros((ensN)*ensN, 1);
             optsT = optimoptions('linprog', 'Display', 'off');
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
 
             xdist = zeros(ensN, ensN);
 
 
-            t0 = Hxf - y;
+            t0 = Hxf - observation.Y;
 
             xa = xf;
 
             invR = spdiags(1./diag(R), 0, size(R, 1), size(R, 2));
-            Hi = obj.Observation.Indices;
+            Hi = observation.Indices;
 
             for k = 1:n
 

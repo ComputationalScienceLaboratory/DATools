@@ -14,25 +14,35 @@ classdef RHF < datools.statistical.ensemble.EnF
             addParameter(p, 'Tail', 'Flat');
             addParameter(p, 'Truncate', 10);
             addParameter(p, 'DiscretePoint', 1e4);
-            parse(p, varargin{2:end});
+            parse(p, varargin{7:end});
 
             s = p.Results;
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.statistical.ensemble.EnF(varargin{1:6}, kept);
             obj.Tail = s.Tail;
             obj.Truncate = s.Truncate;
             obj.DiscretePoint = s.DiscretePoint;
         end
 
-        function analysis(obj, R, y)
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
             tc = obj.Model.TimeSpan(1);
 
             % get the current ensemble forecast
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = observation.ErrorModel.Covariance;
+            
+            y = observation.Y;
 
             % calculate mean and variance of the forecast
             xfm = mean(xf, 2);
@@ -46,7 +56,7 @@ classdef RHF < datools.statistical.ensemble.EnF
             xf = repmat(xfm, 1, ensN) + Af;
 
             % Observable
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
             % mean of observable
             Hxfm = mean(Hxf, 2);
 

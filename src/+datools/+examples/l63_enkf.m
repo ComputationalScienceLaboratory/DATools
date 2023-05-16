@@ -30,7 +30,7 @@ modelODE = otp.lorenz63.presets.Canonical;
 modelODE.TimeSpan = [0, Delta_t];
 
 % Propogate
-[tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
+[tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 % initialize model

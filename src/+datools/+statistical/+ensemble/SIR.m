@@ -2,8 +2,13 @@ classdef SIR < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             tau = obj.Rejuvenation;
             tc = obj.Model.TimeSpan(1);
 
@@ -12,9 +17,11 @@ classdef SIR < datools.statistical.ensemble.EnF
 
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
+            
+            R = observation.ErrorModel.Covariance;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
-            t0 = Hxf - y;
+            Hxf = observation.observeWithoutError(tc, xf);
+            t0 = Hxf - observation.Y;
 
             dR = decomposition(R, 'chol');
             as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';

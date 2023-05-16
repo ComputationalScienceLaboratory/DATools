@@ -1,4 +1,4 @@
-classdef Tent < datools.error.Error
+classdef Tent < datools.error.Uncertainty
 
     properties
         State
