@@ -3,7 +3,7 @@ classdef Model < handle
     properties
         ODEModel
         Solver
-        SynthError
+        Uncertainty
     end
 
     properties (Dependent)
@@ -20,14 +20,14 @@ classdef Model < handle
             p = inputParser;
             addRequired(p, 'ODEModel'); %, @(x) isa(x, 'csl.odetestproblems.Problem'));
             addRequired(p, 'Solver', @(x) nargin(x) == 3);
-            addParameter(p, 'SynthError', datools.error.Error);
+            addParameter(p, 'Uncertainty', datools.uncertainty.NoUncertainty);
             parse(p, varargin{:});
 
             s = p.Results;
 
             obj.ODEModel = s.ODEModel;
             obj.Solver = s.Solver;
-            obj.SynthError = s.SynthError;
+            obj.Uncertainty = s.Uncertainty;
 
         end
 
@@ -76,7 +76,7 @@ classdef Model < handle
 
         function update(obj, time, y0)
 
-            obj.ODEModel.Y0 = obj.SynthError.adderr(obj.ODEModel.TimeSpan(end)+time, y0);
+            obj.ODEModel.Y0 = obj.Uncertainty.addError(y0);
             obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
 
         end

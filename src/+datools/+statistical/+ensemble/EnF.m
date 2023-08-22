@@ -1,4 +1,4 @@
-classdef EnF < handle
+classdef EnF < datools.DAmethod
     % This is the base class for all statistical methods
     % Derive from this class and implement methods/functions as required
     % Deriving from handle base class allows an object of this class to be
@@ -43,8 +43,8 @@ classdef EnF < handle
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
-            addParameter(p, 'ModelError', datools.error.Error);
-            addParameter(p, 'NumEnsemble', 1);
+            %addParameter(p, 'ModelError', datools.error.Error);
+            addParameter(p, 'InitialEnsemble', 0);
             addParameter(p, 'Inflation', 1);
             addParameter(p, 'Rejuvenation', 0);
             addParameter(p, 'Localization', []);
@@ -56,15 +56,18 @@ classdef EnF < handle
 
             s = p.Results;
 
+            modelUncertainty = s.Model.Uncertainty;
+
             obj.Model = s.Model;
-            obj.ModelError = s.ModelError;
+            obj.ModelError = modelUncertainty;
             obj.Inflation = s.Inflation;
             obj.Rejuvenation = s.Rejuvenation;
             obj.Localization = s.Localization;
             obj.Parallel = s.Parallel;
             obj.RankHistogram = s.RankHistogram;
             obj.ResamplingThreshold = s.ResamplingThreshold;
-            ensN = s.NumEnsemble;
+            obj.Ensemble = s.InitialEnsemble;
+            ensN = size(obj.Ensemble, 2);
             if ~isempty(obj.RankHistogram)
                 RankValue = zeros(length(obj.RankHistogram), ensN+2);
             end
@@ -73,12 +76,12 @@ classdef EnF < handle
 
             p = inputParser;
             addParameter(p, 'Observation', datools.observation.Observation(s.Model.NumVars));
-            addParameter(p, 'EnsembleGenerator', @(x) randn(s.Model.NumVars, x));
+            %addParameter(p, 'EnsembleGenerator', @(x) randn(s.Model.NumVars, x));
             parse(p, kept);
 
             s = p.Results;
 
-            obj.Ensemble = s.EnsembleGenerator(ensN);
+            %obj.Ensemble = s.EnsembleGenerator(ensN);
             obj.Observation = s.Observation;
             obj.Weights = ones(ensN, 1) / ensN;
 
@@ -112,14 +115,14 @@ classdef EnF < handle
                 end
 
                 for ensi = 1:ensN
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), ens(:, ensi));
+                    obj.Ensemble(:, ensi) = obj.ModelError.addError(ens(:, ensi));
                 end
 
             else
                 for ensi = 1:obj.NumEnsemble
                     [time, yend] = obj.Model.solve([], obj.Ensemble(:, ensi));
 
-                    obj.Ensemble(:, ensi) = obj.ModelError.adderr(obj.Model.TimeSpan(end), yend);
+                    obj.Ensemble(:, ensi) = obj.ModelError.addError(yend);
                     times(ensi) = time;
                 end
             end

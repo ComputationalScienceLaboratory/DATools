@@ -2,7 +2,7 @@ classdef Observation < handle
 
     properties
         NumVars
-        ErrorModel
+        Uncertainty
     end
 
     methods
@@ -10,20 +10,20 @@ classdef Observation < handle
         function obj = Observation(varargin)
             p = inputParser;
             addRequired(p, 'NumVars');
-            addParameter(p, 'ErrorModel', datools.error.Error);
+            addParameter(p, 'Uncertainty', datools.uncertainty.NoUncertainty);
             parse(p, varargin{:});
 
             s = p.Results;
 
             obj.NumVars = s.NumVars;
-            obj.ErrorModel = s.ErrorModel;
+            obj.Uncertainty = s.Uncertainty;
         end
 
-        function y = observeWithError(obj, t, x)
-            y = obj.ErrorModel.adderr(t, obj.observeWithoutError(t, x));
+        function y = observeWithError(obj, x)
+            y = obj.Uncertainty.addError(obj.observeWithoutError(x));
         end
 
-        function y = observeWithoutError(~, ~, x)
+        function y = observeWithoutError(~, x)
             y = x;
         end
 

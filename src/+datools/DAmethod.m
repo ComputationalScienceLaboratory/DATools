@@ -1,43 +1,20 @@
-classdef DAmethod < handle
-    %DAMETHOD Summary of this class goes here
-    %   Detailed explanation goes here
+classdef (Abstract) DAmethod < handle
 
-    properties
-        Problem
-        Solver
-        H % H is our observation operator
-        CurrentBestGuess % This is our current best guess of the system
+
+    properties (Abstract)
+        Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
+        ModelError % type err
+        Observation % type of obervation
+        BestEstimate
     end
 
-    methods
-        function obj = DAmethod(problem, solver, H)
-            obj.Problem = problem;
-            obj.Solver = solver;
-            if (nargin > 2)
-                obj.H = H;
-            else
-                obj.H = 1;
-            end
-            obj.CurrentBestGuess = obj.Problem.Y0;
-        end
-        function forecast(obj)
-            % This is the basic implementation of the forecast. I would expect
-            % most data assimilation methods to modify this (for instance
-            % ensemble methods will propogate an ensemble.
 
-            % Use our ode solver to solve the IVP
-            [t, y] = obj.Solver(obj.Problem.F, obj.Problem.TimeSpan, obj.Problem.Y0);
-
-            y = y'; % We are all sane people here.
-
-            % Set the new timespan to be that of the end time + dt
-            deltat = diff(obj.Problem.TimeSpan);
-            obj.Problem.TimeSpan = [t(end), t(end) + deltat];
-
-            % Set Y0 to the last iteration of the forecast
-            obj.Problem.Y0 = y(:, end);
-            obj.CurrentBestGuess = y(:, end);
-        end
+    methods (Abstract)
+        forecast(obj)
+        % A method that will be implemented by child  classes to make
+        % approximate inference on ensembles of states by combining
+        % prior forecast/background data with noisy observations
+        analysis(obj, R, y)
     end
 
 end
