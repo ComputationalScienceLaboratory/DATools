@@ -1,5 +1,8 @@
 classdef EnKF < datools.statistical.ensemble.EnF
 
+    properties
+        Name = "Ensemble Kalman Filter"
+    end
 
     methods
 
@@ -9,8 +12,6 @@ classdef EnKF < datools.statistical.ensemble.EnF
             R = obs.Covariance;
 
             inflation = obj.Inflation;
-
-            tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -34,7 +35,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
                 HrhoHt = ones(size(HAf, 1), size(HAf, 1));
             else
                 H = obj.Observation.linearization(xfm);
-                rhoHt = obj.Localization(tc, xfm, H);
+                rhoHt = obj.Localization(xfm, H);
                 H = eye(size(xf, 1));
                 H = H(obj.Observation.Indices, :);
                 HrhoHt = H * rhoHt;
@@ -59,5 +60,6 @@ classdef EnKF < datools.statistical.ensemble.EnF
         end
 
     end
+
 
 end

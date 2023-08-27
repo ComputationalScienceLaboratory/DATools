@@ -2,10 +2,9 @@ classdef SIR < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj, R, y)
+        function analysis(obj, obs)
 
             tau = obj.Rejuvenation;
-            tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             xa = xf;
@@ -13,11 +12,15 @@ classdef SIR < datools.statistical.ensemble.EnF
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
-            t0 = Hxf - y;
+            Hxf = obj.Observation.observeWithoutError(xf);
+            %t0 = Hxf - y;
 
-            dR = decomposition(R, 'chol');
-            as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';
+            %dR = decomposition(R, 'chol');
+            %as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';
+
+            as = obs.log(Hxf).';
+            m = max(as);
+            as = exp(as-(m + log(sum(exp(as-m)))));
 
             w = wf .* as;
             w = w / sum(w);
@@ -43,7 +46,7 @@ classdef SIR < datools.statistical.ensemble.EnF
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
 
         end

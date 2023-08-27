@@ -1,11 +1,10 @@
-classdef Gaussian < datools.DAmethod
+classdef Gaussian < datools.DABase
 
     properties
         Model 
-        ModelError 
         Observation 
-        State
-        Covariance
+        MeanEstimate
+        CovarianceEstimate
     end
 
     properties (Dependent)
@@ -17,14 +16,9 @@ classdef Gaussian < datools.DAmethod
 
             [~ , yend] = obj.Model.solve([], obj.State);
 
-            obj.State = obj.ModelError.adderr(obj.Model.TimeSpan(end), yend);
+            obj.MeanEstimate = obj.Model.Uncertainty.adderr(obj.Model.TimeSpan(end), yend);
 
         end
 
-        function x = get.BestEstimate(obj)
-
-            x = obj.State;
-
-        end
     end
 end

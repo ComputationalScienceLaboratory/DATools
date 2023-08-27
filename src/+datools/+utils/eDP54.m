@@ -133,6 +133,8 @@ for tcheck = 2:numel(tspan)
         ended(endit) = true;
         h(ended) = 0;
 
+        ended(isnan(h)) = true;
+
     end
 
     y(:, :, tcheck - 1) = yc;

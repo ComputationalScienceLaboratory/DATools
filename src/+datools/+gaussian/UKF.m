@@ -4,6 +4,7 @@ classdef UKF < datools.gaussian.Gaussian
         Alpha
         Beta
         Kappa
+        Name = "Unscented Kalman Filter";
     end
 
     methods
@@ -12,17 +13,13 @@ classdef UKF < datools.gaussian.Gaussian
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
-            %addParameter(p, 'ModelUncertainty', datools.uncertainty.NoUncertainty);
             addParameter(p, 'Alpha', 1);
             addParameter(p, 'Beta', 2);
             parse(p, varargin{:});
 
             s = p.Results;
 
-            modelUncertainty = s.Model.Uncertainty;
-
             obj.Model = s.Model;
-            obj.ModelError = modelUncertainty;
             obj.Alpha = s.Alpha;
             obj.Beta = s.Beta;
 
@@ -39,8 +36,8 @@ classdef UKF < datools.gaussian.Gaussian
             s = p.Results;
 
             obj.Observation = s.Observation;
-            obj.State = s.InitialState;
-            obj.Covariance = s.InitialCovariance;
+            obj.MeanEstimate = s.InitialState;
+            obj.CovarianceEstimate = s.InitialCovariance;
             obj.Kappa = s.Kappa;
         end
 
@@ -48,23 +45,25 @@ classdef UKF < datools.gaussian.Gaussian
             alpha = obj.Alpha;
             kappa = obj.Kappa;
             beta = obj.Beta;
-            n = size(obj.State, 1);
+            n = size(obj.MeanEstimate, 1);
             lambda = (alpha^2)*(n + kappa) - n;
 
             % set the local mean and covariance
-            Xmu = obj.State;
-            P =  obj.Covariance;
+            Xmu = obj.MeanEstimate;
+            P =  obj.CovarianceEstimate;
             % sample sigma points
             sqBt = sqrt(n + lambda)*sqrtm(P);
             Xi = [Xmu, Xmu + sqBt, Xmu - sqBt];
 
-            FXi = zeros(size(Xi));
+            %FXi = zeros(size(Xi));
 
-            for i = 1:size(Xi, 2)
-                [~ , yend] = obj.Model.solve([], Xi(:, i));
+            %for i = 1:size(Xi, 2)
+            %    [~ , yend] = obj.Model.solve([], Xi(:, i));
+            %
+            %    FXi(:, i) = yend;
+            %end
 
-                FXi(:, i) = yend;
-            end
+            [~ , FXi] = obj.Model.solve([], Xi);
 
             Wm = [lambda/(lambda + n), (1/(2*(n + lambda)))*ones(1, 2*n)];
             Wc = [lambda/(lambda + n) + (1 - alpha^2 + beta), ...
@@ -73,12 +72,12 @@ classdef UKF < datools.gaussian.Gaussian
             FXimu = FXi*(Wm.');
             A = (Xi - Xmu);
 
-            P = (Wc.*A)*(A.') + obj.ModelError.Covariance;
-            obj.State = FXimu;
+            P = (Wc.*A)*(A.') + obj.Model.Uncertainty.Covariance;
+            obj.MeanEstimate = FXimu;
 
             % recompute P
             P = (P + P.')/2;
-            obj.Covariance = P;
+            obj.CovarianceEstimate = P;
         end
 
         function analysis(obj, obs)
@@ -89,12 +88,12 @@ classdef UKF < datools.gaussian.Gaussian
             alpha = obj.Alpha;
             kappa = obj.Kappa;
             beta = obj.Beta;
-            n = size(obj.State, 1);
+            n = size(obj.MeanEstimate, 1);
             lambda = (alpha^2)*(n + kappa) - n;
 
             % set the local mean and covariance
-            Xmu = obj.State;
-            P =  obj.Covariance;
+            Xmu = obj.MeanEstimate;
+            P =  obj.CovarianceEstimate;
             % sample sigma points
             sqBt = sqrt(n + lambda)*sqrtm(P);
             Xi = [Xmu, Xmu + sqBt, Xmu - sqBt];
@@ -113,11 +112,11 @@ classdef UKF < datools.gaussian.Gaussian
 
             d = (HXimu - y);
             PHt = (Wc.*A)*(Z.');
-            obj.State = Xmu - PHt*(S\d);
+            obj.MeanEstimate = Xmu - PHt*(S\d);
             % recompute P
             P = (P - PHt*(S\(PHt.')));
             P = (P + P.')/2;
-            obj.Covariance = P;
+            obj.CovarianceEstimate = P;
         end
     end
 

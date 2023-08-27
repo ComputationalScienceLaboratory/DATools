@@ -5,8 +5,8 @@ n = sqrt(numel(y0));
 h = 0.1;
 y = y0;
 
-abstol = 1e-6;
-reltol = 1e-6;
+abstol = 1e-2;
+reltol = 1e-2;
 
 ks = zeros([numel(y0), 7]);
 
@@ -46,7 +46,7 @@ while true
     else
 
         % condition used by Acevedo, de Wiljes and Reich.
-        if norm(reshape(ynew, n, n)-reshape(y, n, n), 'inf') < 1e-3 || t > 1000
+        if norm(reshape(ynew, n, n)-reshape(y, n, n), 'inf') < 1e-1 || t > 10
             break;
         end
 

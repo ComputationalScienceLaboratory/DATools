@@ -1,4 +1,4 @@
-function y = rk4ens(f, tspan, y0, steps)
+function [tspan, y] = rk4ens(f, tspan, y0, steps)
 
 t = linspace(tspan(1), tspan(end), steps+1);
 

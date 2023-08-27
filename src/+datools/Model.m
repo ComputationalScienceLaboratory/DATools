@@ -64,13 +64,13 @@ classdef Model < handle
             end
 
             if ~isempty(params)
-                [t, y] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
+                [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
             else
-                [t, y] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
+                [t, yend] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
             end
 
             time = t(end) - t(1);
-            yend = y(end, :).';
+            %yend = y(end, :).';
 
         end
 
