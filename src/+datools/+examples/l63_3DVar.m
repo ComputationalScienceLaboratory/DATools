@@ -8,8 +8,8 @@ Deltat = 0.12;
 solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 100);
 solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 100);
 
-% solvermodel = @(f, t, y) ode45(f, t, y);
-% solvernature = @(f, t, y) ode45(f, t, y);
+solvermodel = @(f, t, y) ode45(f, t, y);
+solvernature = @(f, t, y) ode45(f, t, y);
 
 natureODE = otp.lorenz63.presets.Canonical;
 natureODE.TimeSpan = [0, Deltat];
@@ -38,13 +38,12 @@ nobsvars = numel(observeindicies);
 R = (8 / 1) * speye(nobsvars);
 dR = decomposition(R, 'chol');
 
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
+obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 observation = datools.observation.Indexed(model.NumVars, ...
     'ErrorModel', obserrormodel, ...
     'Indices', observeindicies);
 
 % We make the assumption that there is no model error
-modelerror = datools.error.Error;
 
 % No localization
 localization = [];
@@ -55,15 +54,25 @@ B = [0.86, 0.86, -0.02; ...
 
 B = 8*B;
 
-meth = datools.variational.ThreeDVar(model, ...
+modelerror = datools.uncertainty.Gaussian('Covariance', B/2);
+
+
+% meth = datools.variational.ThreeDVar(model, ...
+%     'ModelError', modelerror, ...
+%     'Observation', observation, ...
+%     'InitialState', nature.State, ...
+%     'BackgroundCovariance', B, ...
+%     'OptimizationType', 'lbfgs');
+
+meth = datools.gaussian.UKF(model, ...
     'ModelError', modelerror, ...
     'Observation', observation, ...
     'InitialState', nature.State, ...
-    'BackgroundCovariance', B, ...
-    'OptimizationType', 'lbfgs');
+    'InitialCovariance', B, ...
+    'Alpha', 1e-1);
 
-spinup = 200;
-times = 2200;
+spinup = 500;
+times = 5500;
 
 do_filter = true;
 
@@ -86,7 +95,7 @@ for i = 1:times
     % analysis
     %try
     if do_filter
-        meth.analysis(dR, y);
+        meth.analysis(R, y);
     end
     %catch
     %    do_enkf = false;

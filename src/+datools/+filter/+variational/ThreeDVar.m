@@ -1,4 +1,4 @@
-classdef ThreeDVar < handle
+classdef ThreeDVar < datools.DAmethod
     %
 
     properties
@@ -10,12 +10,12 @@ classdef ThreeDVar < handle
         OptAlg % lbfgs or newton
     end
 
-    properties (Dependent)
-        BestEstimate % Current estimate of the particles/ensembles
-    end
-
     properties (Access=protected)
         BDecomposition
+    end
+
+    properties (Dependent)
+        BestEstimate
     end
 
     methods
@@ -131,15 +131,7 @@ classdef ThreeDVar < handle
         end
 
         function x = get.BestEstimate(obj)
-            %GET.BESTESTIMATE Method to estimate of ensemble values
-            %
-            %   X = GET.BESTESTIMATE(OBJ) uses an in-built getter method,
-            %   derived from handle class, to return the best estimate of
-            %   the information from the current ensembles of states and
-            %   its corresponding weights
-
             x = obj.State;
-
         end
 
     end

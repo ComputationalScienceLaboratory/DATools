@@ -11,8 +11,8 @@ classdef Nonlinear < datools.observation.Observation
         function obj = Nonlinear(nvars, varargin)
             p = inputParser;
             p.KeepUnmatched = true;
-            addParameter(p, 'F', @(~, x) x);
-            addParameter(p, 'Jacobian', @(~, x) speye(numel(x)));
+            addParameter(p, 'F', @(x) x);
+            addParameter(p, 'Jacobian', @(x) speye(numel(x)));
             addParameter(p, 'Indices', 1);
             parse(p, varargin{:});
 
@@ -26,19 +26,19 @@ classdef Nonlinear < datools.observation.Observation
 
         end
 
-        function y = observeWithoutError(obj, t, x)
-            yfull = obj.F(t, x);
+        function y = observeWithoutError(obj, x)
+            yfull = obj.F(x);
             y = yfull(obj.Indices, :);
         end
 
-        function H = linearization(obj, t, x, v)
+        function H = linearization(obj, x, v)
             if nargin < 4
-                H = obj.Jacobian(t, x);
+                H = obj.Jacobian(x);
                 if size(H, 1) == size(H, 2)
                     H = H(obj.Indices, :);
                 end
             else
-                H = obj.Jacobian(t, x, v);
+                H = obj.Jacobian(x, v);
                 H = H(obj.Indices, :);
             end
         end

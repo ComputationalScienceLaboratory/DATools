@@ -20,11 +20,11 @@ classdef Indexed < datools.observation.Observation
 
         end
 
-        function y = observeWithoutError(obj, ~, x)
+        function y = observeWithoutError(obj, x)
             y = x(obj.Indices, :);
         end
 
-        function H = linearization(obj, ~, ~)
+        function H = linearization(obj, ~)
             I = speye(obj.NumVars);
             H = I(obj.Indices, :);
         end

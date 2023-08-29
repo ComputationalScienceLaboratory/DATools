@@ -1,11 +1,14 @@
-classdef SIR < datools.statistical.ensemble.EnF
+classdef BPF < datools.filter.ensemble.EnF
+
+    properties
+        Name = "Bootstrap Particle Filter"
+    end
 
     methods
 
-        function analysis(obj, R, y)
+        function analysis(obj, obs)
 
             tau = obj.Rejuvenation;
-            tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             xa = xf;
@@ -13,14 +16,18 @@ classdef SIR < datools.statistical.ensemble.EnF
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
-            t0 = Hxf - y;
+            Hxf = obs.observeWithoutError(xf);
 
-            dR = decomposition(R, 'chol');
-            as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';
+            as = obs.Uncertainty.log(Hxf).';
+            m = max(as);
+            as = exp(as-(m + log(sum(exp(as-m)))));
 
-            w = wf .* as;
-            w = w / sum(w);
+            w = wf.*as;
+            w = w/sum(w);
+            
+            if any(isnan(w))
+                w = ones(ensN, 1) / ensN;
+            end
 
             ensEff = 1 / sum(w.^2);
 
@@ -38,12 +45,11 @@ classdef SIR < datools.statistical.ensemble.EnF
 
             end
 
-
             obj.Ensemble = xa;
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
 
         end

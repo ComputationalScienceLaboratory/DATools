@@ -1,4 +1,4 @@
-function rhoHt = gc(t, y, r, d, H, m)
+function rhoHt = gc(y, r, d, H, m)
 
 if nargin < 6
     m = @(ri, rj) (ri + rj) / 2;
@@ -23,9 +23,8 @@ r = r.';
 for jr = 1:numel(I1)
     j = I1(jr);
 
-    ks1 = d(t, y, I2, j) ./ r(j);
-    ks2 = d(t, y, I2, j) ./ r(I2);
-
+    ks1 = d(y, I2, j) ./ r(j);
+    ks2 = d(y, I2, j) ./ r(I2);
 
     %rhoHt(:, jr) = m(gcf(ks1).', gcf(ks2).')*(H(:, j).');
 
