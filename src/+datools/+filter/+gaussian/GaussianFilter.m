@@ -6,10 +6,6 @@ classdef GaussianFilter < datools.DABase
         CovarianceEstimate
     end
 
-    properties (Dependent)
-        BestEstimate % Current estimate of the particles/ensembles
-    end
-
     methods
         function forecast(obj)
 

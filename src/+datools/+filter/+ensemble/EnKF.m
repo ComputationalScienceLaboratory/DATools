@@ -1,4 +1,4 @@
-classdef EnKF < datools.statistical.ensemble.EnF
+classdef EnKF < datools.filter.ensemble.EnF
 
     properties
         Name = "Ensemble Kalman Filter"

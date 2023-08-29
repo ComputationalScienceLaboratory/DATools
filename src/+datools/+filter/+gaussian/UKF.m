@@ -1,4 +1,4 @@
-classdef UKF < datools.gaussian.GaussianFilter
+classdef UKF < datools.filter.gaussian.GaussianFilter
 
     properties
         Alpha

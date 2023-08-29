@@ -1,4 +1,4 @@
-classdef ETPF < datools.statistical.ensemble.EnF
+classdef ETPF < datools.filter.ensemble.EnF
 
     properties
         SinkhornKnoppLambda = 0;
@@ -37,7 +37,7 @@ classdef ETPF < datools.statistical.ensemble.EnF
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1}, kept);
 
             obj.LocalizationEnsembleDistance = s.LocalizationEnsembleDistance;
             obj.SinkhornKnoppLambda = s.SinkhornKnoppLambda;

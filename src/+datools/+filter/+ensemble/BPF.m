@@ -1,4 +1,4 @@
-classdef BPF < datools.statistical.ensemble.EnF
+classdef BPF < datools.filter.ensemble.EnF
 
     properties
         Name = "Bootstrap Particle Filter"
