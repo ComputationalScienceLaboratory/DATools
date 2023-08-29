@@ -40,7 +40,7 @@ classdef Uniform < datools.uncertainty.Uncertainty
             
             volume = prod(obj.Upper - obj.Lower);
             
-            lp = -inf*zeros(1, N);
+            lp = -inf*ones(1, N);
             lp(bin) = -log(volume);
         end
 

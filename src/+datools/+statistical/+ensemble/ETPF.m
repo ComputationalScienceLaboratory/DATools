@@ -58,7 +58,7 @@ classdef ETPF < datools.statistical.ensemble.EnF
             X = obj.Ensemble;
             ensN = obj.NumEnsemble;
 
-            HX = obj.Observation.observeWithoutError(X);
+            HX = obs.observeWithoutError(X);
 
             xdist = zeros(ensN, ensN);
 
@@ -70,9 +70,14 @@ classdef ETPF < datools.statistical.ensemble.EnF
                 end
 
                 % more efficient way of calculating weights
-                as = obs.log(HX).';
+                as = obs.Uncertainty.log(HX).';
                 m = max(as);
                 w = exp(as-(m + log(sum(exp(as-m)))));
+                w = w/sum(w);
+
+                if any(isnan(w))
+                    w = ones(ensN, 1)/ensN;
+                end
 
                 lambda = obj.SinkhornKnoppLambda;
 
@@ -108,10 +113,10 @@ classdef ETPF < datools.statistical.ensemble.EnF
 
             else
                 xa = X;
-                R = obs.Covariance;
-                y = obs.Mean;
+                R = obs.Uncertainty.Covariance;
+                y = obs.Uncertainty.Mean;
                 invR = spdiags(1./diag(R), 0, size(R, 1), size(R, 2));
-                Hi = obj.Observation.Indices;
+                Hi = obs.Indices;
 
                 t0 = HX - y;
 

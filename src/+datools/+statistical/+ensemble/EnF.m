@@ -6,7 +6,6 @@ classdef EnF < datools.DABase
 
     properties
         Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
-        Observation % type of obervation
         Ensemble % current ensemble values for all the states
         Weights % Weight of each particle/ensemble
         Inflation % inflation constant
@@ -67,15 +66,6 @@ classdef EnF < datools.DABase
                 RankValue = zeros(length(obj.RankHistogram), ensN+2);
             end
 
-            kept = p.Unmatched;
-
-            p = inputParser;
-            addParameter(p, 'Observation', datools.observation.Observation(s.Model.NumVars));
-            parse(p, kept);
-
-            s = p.Results;
-
-            obj.Observation = s.Observation;
             obj.Weights = ones(ensN, 1) / ensN;
 
         end

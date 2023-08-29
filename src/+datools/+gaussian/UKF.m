@@ -1,4 +1,4 @@
-classdef UKF < datools.gaussian.Gaussian
+classdef UKF < datools.gaussian.GaussianFilter
 
     properties
         Alpha
@@ -27,7 +27,6 @@ classdef UKF < datools.gaussian.Gaussian
 
             p = inputParser;
             n = s.Model.NumVars;
-            addParameter(p, 'Observation', datools.observation.Observation(n));
             addParameter(p, 'InitialState', zeros(n, 1));
             addParameter(p, 'InitialCovariance', eye(n, n));
             addParameter(p, 'Kappa', 3 - n);
@@ -35,7 +34,6 @@ classdef UKF < datools.gaussian.Gaussian
 
             s = p.Results;
 
-            obj.Observation = s.Observation;
             obj.MeanEstimate = s.InitialState;
             obj.CovarianceEstimate = s.InitialCovariance;
             obj.Kappa = s.Kappa;
@@ -82,8 +80,8 @@ classdef UKF < datools.gaussian.Gaussian
 
         function analysis(obj, obs)
 
-            y = obs.Mean;
-            R = obs.Covariance;
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
 
             alpha = obj.Alpha;
             kappa = obj.Kappa;
@@ -97,7 +95,7 @@ classdef UKF < datools.gaussian.Gaussian
             % sample sigma points
             sqBt = sqrt(n + lambda)*sqrtm(P);
             Xi = [Xmu, Xmu + sqBt, Xmu - sqBt];
-            HXi = obj.Observation.observeWithoutError(Xi);
+            HXi = obs.observeWithoutError(Xi);
 
             Wm = [lambda/(lambda + n), (1/(2*(n + lambda)))*ones(1, 2*n)];
             Wc = [lambda/(lambda + n) + (1 - alpha^2 + beta), ...

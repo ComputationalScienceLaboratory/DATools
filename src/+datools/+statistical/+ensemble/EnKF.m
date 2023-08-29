@@ -8,8 +8,8 @@ classdef EnKF < datools.statistical.ensemble.EnF
 
         function analysis(obj, obs)
 
-            y = obs.Mean;
-            R = obs.Covariance;
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
 
             inflation = obj.Inflation;
 
@@ -23,7 +23,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(xf);
+            Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -34,10 +34,10 @@ classdef EnKF < datools.statistical.ensemble.EnF
                 rhoHt = ones(size(Af, 1), size(HAf, 1));
                 HrhoHt = ones(size(HAf, 1), size(HAf, 1));
             else
-                H = obj.Observation.linearization(xfm);
+                H = obs.linearization(xfm);
                 rhoHt = obj.Localization(xfm, H);
                 H = eye(size(xf, 1));
-                H = H(obj.Observation.Indices, :);
+                H = H(obs.Indices, :);
                 HrhoHt = H * rhoHt;
                 HrhoHt = (HrhoHt + HrhoHt.')/2;
             end
@@ -55,7 +55,7 @@ classdef EnKF < datools.statistical.ensemble.EnF
             Aa = Af + PfHt * (dS \ (sqrtm(R) * randn(size(HAf)) - HAf));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
-            %obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
         end
 

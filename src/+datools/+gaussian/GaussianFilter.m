@@ -1,8 +1,7 @@
-classdef Gaussian < datools.DABase
+classdef GaussianFilter < datools.DABase
 
     properties
         Model 
-        Observation 
         MeanEstimate
         CovarianceEstimate
     end
