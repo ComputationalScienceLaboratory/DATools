@@ -92,8 +92,8 @@ classdef Empirical < datools.uncertainty.Uncertainty
             g = datools.uncertainty.Gaussian(obj.Mean, obj.Covariance);
         end
 
-        function gmm = asGMM(obj, sbeta)
-            if nargin < 2 || isempty(sbeta)
+        function gmm = asGMM(obj, ~, sbeta)
+            if nargin < 3 || isempty(sbeta)
                 sbeta = 1;
             end
             % use Silverman's rule of thumb

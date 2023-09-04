@@ -74,15 +74,15 @@ classdef Laplace < datools.uncertainty.Uncertainty
             g = datools.uncertainty.Gaussian("Mean", obj.Mean, "Covariance", obj.Covariance);
         end
 
-        function gmm = asGMM(obj, n)
-            if isempty(n)
-                n = 4;
+        function gmm = asGMM(obj, N)
+            if nargin < 2 || isempty(N)
+                N = 4;
             end
 
             pkm1 = datools.utils.Polynomial(1);
             pk = datools.utils.Polynomial([-1 1]);
 
-            for k = 1:n
+            for k = 1:N
                 tmp = datools.utils.Polynomial([-1, 2*k+1]);
                 pkp1 = (1/(k + 1))*(tmp*pk - k*pkm1);
 
@@ -92,13 +92,13 @@ classdef Laplace < datools.uncertainty.Uncertainty
 
             zs = roots(pkm1.p);
 
-            w = zs./(((n + 1).^2)*(polyval(pk.p, zs).^2));
+            w = zs./(((N + 1).^2)*(polyval(pk.p, zs).^2));
             w = w./sum(w);
 
             zs = reshape(zs, 1, 1, []);
             
             Sigma = zs.*(obj.Covariance);
-            means = repmat(obj.Mean, 1, n);
+            means = repmat(obj.Mean, 1, N);
 
             gmm = datools.uncertainty.GMM(means, Sigma, w);
 

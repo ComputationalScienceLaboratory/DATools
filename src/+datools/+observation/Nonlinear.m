@@ -35,7 +35,11 @@ classdef Nonlinear < datools.observation.Observation
             if nargin < 4
                 H = obj.Jacobian(x);
                 if size(H, 1) == size(H, 2)
-                    H = H(obj.Indices, :);
+                    if size(H, 3) == 1
+                        H = H(obj.Indices, :);
+                    else
+                        H = H(obj.Indices, :, :);
+                    end
                 end
             else
                 H = obj.Jacobian(x, v);

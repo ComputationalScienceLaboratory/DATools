@@ -75,12 +75,11 @@ classdef GMM < datools.uncertainty.Uncertainty
             for j = 1:M
                 sigmaj = sigma(:, :, j);
                 R = chol(sigmaj);
-                as(:, j) = sum(-0.5*(x - mu(:, j)).*(sigmaj\(x - mu(:, j))), 1) ...
-                    - sum(log(diag(R))) - (n/2)*log(2*pi) + log(w(j));
+                as(:, j) = (-0.5*sum((x - mu(:, j)).*(sigmaj\(x - mu(:, j))), 1) ...
+                    - sum(log(diag(R))) - (n/2)*log(2*pi) + log(w(j)))';
             end
 
             ma = max(as, [], 2);
-
             lp = ma + log(sum(exp(as - ma), 2));
             lp = lp.';
 
