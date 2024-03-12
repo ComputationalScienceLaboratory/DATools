@@ -20,8 +20,8 @@ classdef Uniform < datools.uncertainty.Uncertainty
 
             s = p.Results;
 
-            obj.Lower = s.Lower;
-            obj.Upper = s.Upper;
+            obj.Lower = reshape(s.Lower, [], 1);
+            obj.Upper = reshape(s.Upper, [], 1);
         end
 
         function x = sample(obj, N)
@@ -72,14 +72,44 @@ classdef Uniform < datools.uncertainty.Uncertainty
             mu = 0.5*(obj.Lower + obj.Upper);
         end
 
-        function obj = asGaussian(obj)
-
+        function g = asGaussian(obj)
+            g = datools.uncertainty.Gaussian('Mean', obj.Mean, ...
+                'Covariance', obj.Covariance);
         end
 
-        function gmm = asGMM(obj)
-            gmm = datools.uncertainty.GMM(obj.Mean, obj.Covariance, 1);
+        function gmm = asGMM(obj, N)
+            if nargin < 2
+                N = 25;
+            end
+
+            n = numel(obj.Lower);
+
+            Ngrid = ceil(N^(1/n));
+
+            ls = linspace(0, 1, Ngrid);
+
+            xs = (1 - ls).*(obj.Lower) + ls.*(obj.Upper);
+
+            grid = creategrid(xs, n);
+
+            em = datools.uncertainty.Empirical('State', grid);
+            
+            gmm = em.asGMM();
         end
 
     end
 
+end
+
+function grid = creategrid(xs, n)
+if n == 1
+    grid = xs(1, :);
+else
+    grid = creategrid(xs, n - 1);
+    Nnew = size(grid, 2);
+    grid = repmat(grid, 1, size(xs, 2));
+
+    xnew = reshape(repmat(xs(n, :), Nnew, 1), 1, []);
+    grid = [grid; xnew];
+end
 end

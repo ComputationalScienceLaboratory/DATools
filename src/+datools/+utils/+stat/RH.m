@@ -1,7 +1,7 @@
 function RH(model, xt)
 %function to plot the rank histogram
 
-flag = isa(model, 'datools.statistical.ensemble.EnF');
+flag = isa(model, 'datools.filter.ensemble.EnF');
 if ~flag
     frpintf('Model should be ensemble type');
     exit;

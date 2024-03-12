@@ -1,4 +1,4 @@
-function Ctilde = gcCTilde(y, H, r, d, k)
+function Ctilde = gc(y, H, r, d, k)
 
 %rsfun = @(r) repmat(r, n/numel(r), 1);
 
