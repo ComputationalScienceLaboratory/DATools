@@ -1,4 +1,4 @@
-function Ctilde = cutoffCTilde(t, y, H, r, d, k)
+function Ctilde = cutoff(t, y, H, r, d, k)
 
 %rsfun = @(r) repmat(r, n/numel(r), 1);
 

@@ -1,16 +1,19 @@
-classdef SIR < datools.statistical.ensemble.EnF
+classdef BPF < datools.filter.ensemble.EnF
+
+    properties
+        Name = "Bootstrap Particle Filter"
+    end
 
     methods
 
-        function analysis(obj, observation)
+        function analysis(obj, obs)
             %ANALYSIS   Method to overload the analysis function
             %
             %   ANALYSIS(OBJ) assimilates the current observation with the
             %   background/prior information to get a better estimate
             %   (analysis/posterior)
-            
+
             tau = obj.Rejuvenation;
-            tc = obj.Model.TimeSpan(1);
 
             xf = obj.Ensemble;
             xa = xf;
@@ -20,14 +23,18 @@ classdef SIR < datools.statistical.ensemble.EnF
             
             R = observation.ErrorModel.Covariance;
 
-            Hxf = observation.observeWithoutError(tc, xf);
-            t0 = Hxf - observation.Y;
+            Hxf = obs.observeWithoutError(xf);
 
-            dR = decomposition(R, 'chol');
-            as = exp(-0.5*sum(t0.*(dR \ t0), 1)).';
+            as = obs.Uncertainty.log(Hxf).';
+            m = max(as);
+            as = exp(as-(m + log(sum(exp(as-m)))));
 
-            w = wf .* as;
-            w = w / sum(w);
+            w = wf.*as;
+            w = w/sum(w);
+            
+            if any(isnan(w))
+                w = ones(ensN, 1) / ensN;
+            end
 
             ensEff = 1 / sum(w.^2);
 
@@ -45,12 +52,11 @@ classdef SIR < datools.statistical.ensemble.EnF
 
             end
 
-
             obj.Ensemble = xa;
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
 
         end

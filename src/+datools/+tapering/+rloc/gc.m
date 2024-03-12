@@ -1,13 +1,15 @@
-function Ctilde = gcCTilde(t, y, H, r, d, k)
+function Ctilde = gc(y, H, r, d, k)
 
 %rsfun = @(r) repmat(r, n/numel(r), 1);
 
 %r = rsfun(r);
 
-ki = d(t, y, k, H) / r;
+ki = d(y, k, H) / r;
 CtildeD = gcf(ki).';
 
-Ctilde = spdiags(CtildeD, 0, numel(H), numel(H));
+%Ctilde = spdiags(CtildeD, 0, numel(H), numel(H));
+
+Ctilde = diag(CtildeD);
 
 end
 

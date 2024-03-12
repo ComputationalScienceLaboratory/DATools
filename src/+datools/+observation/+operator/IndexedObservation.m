@@ -21,13 +21,16 @@ classdef IndexedObservation < datools.observation.operator.Observation
 
         end
 
-        function y = observeWithoutError(obj, ~, x)
+        function y = observeWithoutError(obj, x)
             y = x(obj.Indices, :);
         end
 
-        function H = linearization(obj, ~, ~)
-            I = speye(obj.NumVars);
-            H = I(obj.Indices, :);
+        function H = linearization(obj, x)
+            %I = speye(obj.NumVars);
+            %H = I(obj.Indices, :);
+            N = size(x, 2);
+            I = eye(obj.NumVars);
+            H = repmat(I(obj.Indices, :), 1, 1, N);
         end
 
     end

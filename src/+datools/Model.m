@@ -6,11 +6,10 @@ classdef Model < handle
     %   Model errors can be incorporated using the SynthError
 
     properties
-        ODEModel % The ODE model from OTP or user defined
-        Solver % Time Integration Scheme
-        SynthError % Model Error
-        AddError % boolean to add/not add noise during forward propogation
-        TimeSpan % Time Span for Propogating the Model
+        ODEModel
+        Solver
+        SolverTLM
+        Uncertainty
     end
 
     properties (Dependent)
@@ -25,17 +24,16 @@ classdef Model < handle
             p = inputParser;
             addRequired(p, 'ODEModel'); %, @(x) isa(x, 'csl.odetestproblems.Problem'));
             addRequired(p, 'Solver', @(x) nargin(x) == 3);
-            addParameter(p, 'SynthError', []);
-            addParameter(p, 'AddError', false);
+            addParameter(p, 'Uncertainty', datools.uncertainty.NoUncertainty);
+            addParameter(p, 'SolverTLM', @(f, t, y, J, lambda) datools.utils.rk4tlm(f, t, y, J, lambda, 10));
             parse(p, varargin{:});
 
             s = p.Results;
 
             obj.ODEModel = s.ODEModel;
             obj.Solver = s.Solver;
-            obj.SynthError = s.SynthError;
-            obj.AddError = s.AddError;
-            obj.TimeSpan = obj.ODEModel.TimeSpan;
+            obj.Uncertainty = s.Uncertainty;
+            obj.SolverTLM = s.SolverTLM;
 
         end
 
@@ -72,24 +70,55 @@ classdef Model < handle
             end
 
             if ~isempty(params)
-                [t, y] = obj.Solver(@(t, y) obj.ODEModel.F(t, y, params), tspan, y0);
+                [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
             else
-                [t, y] = obj.Solver(obj.ODEModel.F, tspan, y0);
+                [t, yend] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
             end
 
             time = t(end) - t(1);
-            yend = y(end, :).';
+            %yend = y(end, :).';
+
+        end
+
+        function [time, yend, lambda] = solveWithTLM(obj, tspan, y0, lambda, params)
+
+            if nargin < 2 || isempty(tspan)
+                tspan = obj.ODEModel.TimeSpan;
+            end
+
+            if nargin < 3 || isempty(y0)
+                y0 = obj.ODEModel.Y0;
+            end
+
+            if nargin < 4 || isempty(lambda)
+                lambda = eye(size(y0, 1));
+            end
+
+            if nargin < 5 || isempty(params)
+                params = [];
+            end
+
+            if ~isempty(params)
+                [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
+            else
+                J = obj.ODEModel.RHS.Jacobian;
+                if isempty(J)
+                    J = @(t, y) otp.utils.derivatives.jacobian( ...
+                        obj.ODEModel.RHS.F, t, y, 'FD');
+                end
+
+                [t, yend, lambda] = obj.SolverTLM(obj.ODEModel.RHS.F, tspan, y0, J, lambda);
+            end
+
+            time = t(end) - t(1);
+            %yend = y(end, :).';
 
         end
 
         function update(obj, time, y0)
-            if obj.AddError
-                obj.ODEModel.Y0 = obj.SynthError.addError(obj.ODEModel.TimeSpan(end)+time, y0);
-                obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
-            else
-                obj.ODEModel.Y0 = obj.SynthError.addNoError(obj.ODEModel.TimeSpan(end)+time, y0);
-                obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
-            end
+
+            obj.ODEModel.Y0 = obj.Uncertainty.addError(y0);
+            obj.ODEModel.TimeSpan = obj.ODEModel.TimeSpan + time;
 
         end
 
