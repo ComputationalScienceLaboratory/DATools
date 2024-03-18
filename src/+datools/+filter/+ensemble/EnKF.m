@@ -21,7 +21,6 @@ classdef EnKF < datools.filter.ensemble.EnF
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-            R = observation.ErrorModel.Covariance;
 
             xfm = mean(xf, 2);
 
@@ -56,7 +55,7 @@ classdef EnKF < datools.filter.ensemble.EnF
 
             S = HPfHt + R;
             dS = decomposition(S, 'chol');
-            d = observation.Y - Hxfm;
+            d = y - Hxfm;
 
             xam = xfm + PfHt * (dS \ d);
             Aa = Af + PfHt * (dS \ (sqrtm(R) *...

@@ -111,7 +111,7 @@ for runn = runsleft.'
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
 
 
-        enkf = datools.filter.ensemble.EnKF(model, ...
+        filter = datools.filter.ensemble.EnKF(model, ...
             'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'Inflation', inflation, ...
             'Localization', localization, ...
@@ -119,7 +119,7 @@ for runn = runsleft.'
             'RankHistogram', histvar, ...
             'Rejuvenation', 0.1);
 
-        enkf.MeanEstimate = natureODE.Y0;
+        filter.MeanEstimate = natureODE.Y0;
 
         % define steps and spinups
         spinup = 500;
@@ -140,7 +140,7 @@ for runn = runsleft.'
             nature.evolve();
 
             if do_enkf
-                enkf.forecast();
+                filter.forecast();
             end
 
 
@@ -150,19 +150,19 @@ for runn = runsleft.'
             observation.Uncertainty.Mean = y;
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(enkf, xt);
+            datools.utils.stat.RH(filter, xt,y);
 
             % analysis
 
             % try
             if do_enkf
-                enkf.analysis(observation);
+                filter.analysis(observation);
             end
             %catch
             %    do_enkf = false;
             %end
 
-            xa = enkf.MeanEstimate;
+            xa = filter.MeanEstimate;
 
             err = xt - xa;
 
@@ -205,7 +205,7 @@ for runn = runsleft.'
 
     rmses(ensNi, infi) = resE;
 
-    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(enkf.RankValue(1, 1:end-1), ...
+    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
         (1 / ensN)*ones(1, ensN+1));
 
     mm = min(rmses(:));
@@ -222,7 +222,7 @@ for runn = runsleft.'
     set(gca, 'XTickLabel', ensNs);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
     hold all;
-    z = enkf.RankValue(1, 1:end-1);
+    z = filter.RankValue(1, 1:end-1);
     z = z / sum(z);
     NN = numel(z);
     z = NN * z;

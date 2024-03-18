@@ -1,25 +1,14 @@
 clear;
 close all;
-% figure;
-% drawnow;
-
-% SETTINGS
-% Uncomment whichever filter you want to run with.
-filterName = 'EnKF';
-% fitlerName = 'ETPF';
-% filterName = 'ETKF';
-
-
-% OTHER STUFF
 
 % time steps
 Delta_t = 0.12;
 
 % Time Stepping Methods (Use ode45 or write your own)
-% solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 50);
-% solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 50);
-solvermodel = @(f, t, y) ode45(f, t, y);
-solvernature = @(f, t, y) ode45(f, t, y);
+solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+% solvermodel = @(f, t, y) ode45(f, t, y);
+% solvernature = @(f, t, y) ode45(f, t, y);
 
 % Define ODE
 natureODE = otp.lorenz63.presets.Canonical;
@@ -38,26 +27,29 @@ model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
 % Observation Model
-naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
-    speye(natureODE.NumVars));
-
+naturetomodel = @(x) x;
 
 % observe these variables
 observeindicies = 1:1:natureODE.NumVars;
 
 nobsvars = numel(observeindicies);
 
-R = (1 / 1) * speye(nobsvars);
+R = (8 / 1) * speye(nobsvars);
 
 % Observaton model (Gaussian here)
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
-%obserrormodel = datools.error.Tent;
+obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
+
 observation = datools.observation.Indexed(model.NumVars, ...
-    'ErrorModel', obserrormodel, ...
+    'Uncertainty', obserrormodel, ...
+    'Indices', observeindicies);
+
+natureobserrormodel = datools.uncertainty.Gaussian('Covariance', R);
+natureobs = datools.observation.Indexed(model.NumVars, ...
+    'Uncertainty', natureobserrormodel, ...
     'Indices', observeindicies);
 
 % We make the assumption that there is no model error
-modelerror = datools.error.Error;
+modelerror = datools.uncertainty.NoUncertainty;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
@@ -74,9 +66,9 @@ rejs = round(rejs, 2);
 
 % variables for which you need the rank histogram plot
 histvar = 1:1:3;
-serveindicies = 1:1:natureODE.NumVars;
-rmses = inf * ones(numel(ensNs), numel(infs));
 rhplotval = inf * ones(numel(ensNs), numel(infs));
+
+rmses = inf * ones(numel(ensNs), numel(infs));
 
 maxallowerr = 10;
 
@@ -117,29 +109,23 @@ for runn = runsleft.'
         inflation = inflationAll;
         rejuvenation = rejAll;
 
+        %localization = [];
+
         % define the statistical/variational model here
-        enkf = datools.statistical.ensemble.EnKF(model, ...
-            'Observation', observation, ...
-            'NumEnsemble', ensN, ...
-            'ModelError', modelerror, ...
-            'EnsembleGenerator', ensembleGenerator, ...
+        filter = datools.filter.ensemble.EnKF(model, ...
+            'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
             'RankHistogram', histvar, ...
             'Rejuvenation', rejuvenation);
 
-        enkf.setMean(natureODE.Y0);
-        enkf.scaleAnomalies(1/10);
+        filter.MeanEstimate = natureODE.Y0;
 
         % define steps and spinups
         spinup = 500;
         times = 11 * spinup;
 
         mses = zeros(times - spinup, 1);
-
-        %         imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-        %         axis square; title('EnKF'); colormap('pink');
-        %         xlabel('Ensemble Size'); ylabel('Inflation');
 
         rmse = nan;
         ps = '';
@@ -153,27 +139,28 @@ for runn = runsleft.'
             nature.evolve();
 
             if do_enkf
-                enkf.forecast();
+                filter.forecast();
             end
 
             % observe
-            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = enkf.Observation.observeWithError(model.TimeSpan(1), xt);
+            xt = naturetomodel(nature.State);
+            y = natureobs.observeWithError(xt);
+            observation.Uncertainty.Mean = y;
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(enkf, xt);
+            datools.utils.stat.RH(filter, xt,y);
 
             % analysis
 
             % try
             if do_enkf
-                enkf.analysis(R, y);
+                filter.analysis(observation);
             end
             %catch
             %    do_enkf = false;
             %end
 
-            xa = enkf.BestEstimate;
+            xa = filter.MeanEstimate;
 
             err = xt - xa;
 
@@ -215,7 +202,7 @@ for runn = runsleft.'
 
     rmses(ensNi, infi) = resE;
 
-    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(enkf.RankValue(1, 1:end-1), ...
+    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
         (1 / ensN)*ones(1, ensN+1));
 
     mm = min(rmses(:));
@@ -230,7 +217,7 @@ for runn = runsleft.'
     figure(f1);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
     hold all;
-    z = enkf.RankValue(1, 1:end-1);
+    z = filter.RankValue(1, 1:end-1);
     maxz = max(z);
     z = z / sum(z);
     NN = numel(z);

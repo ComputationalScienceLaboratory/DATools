@@ -79,7 +79,7 @@ classdef EnF < datools.DABase
             %   FORECAST(OBJ) propoagates the model one step in time
             %   using a user defined time integration method
 
-            [time, yend] = obj.Model.solve(obj.Model.TimeSpan, obj.Ensemble);
+            [time, yend] = obj.Model.solve(obj.Model.ODEModel.TimeSpan, obj.Ensemble);
 
             obj.Ensemble = obj.Model.Uncertainty.addError(yend);
             times = time;
