@@ -1,9 +1,11 @@
-classdef RHF < datools.statistical.ensemble.EnF
+classdef RHF < datools.filter.ensemble.EnF
 
     properties
-        Tail
-        Truncate
-        DiscretePoint
+        Tail % the kind of tail it is
+        Truncate % equal truncation length on each flat tail
+        LeftBound % lower bound on the tail
+        RightBound % upper bound on the tail
+        Name = "Rank Histogram Filter"
     end
 
     methods
@@ -13,36 +15,37 @@ classdef RHF < datools.statistical.ensemble.EnF
 
             addParameter(p, 'Tail', 'Flat');
             addParameter(p, 'Truncate', 10);
-            addParameter(p, 'DiscretePoint', 1e4);
-            parse(p, varargin{7:end});
+            addParameter(p, 'LeftBound', -inf);
+            addParameter(p, 'RightBound', inf);
+            parse(p, varargin{8:end});
 
             s = p.Results;
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1:6}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1:7}, kept);
             obj.Tail = s.Tail;
             obj.Truncate = s.Truncate;
-            obj.DiscretePoint = s.DiscretePoint;
+            obj.LeftBound = s.LeftBound;
+            obj.RightBound = s.RightBound;
         end
 
-        function analysis(obj, observation)
+        function analysis(obj, obs)
             %ANALYSIS   Method to overload the analysis function
             %
             %   ANALYSIS(OBJ) assimilates the current observation with the
             %   background/prior information to get a better estimate
             %   (analysis/posterior)
-            
+
             inflation = obj.Inflation;
-            tc = obj.Model.TimeSpan(1);
 
             % get the current ensemble forecast
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-            
-            R = observation.ErrorModel.Covariance;
-            
-            y = observation.Y;
+
+            R = obs.Uncertainty.Covariance;
+
+            y = obs.Uncertainty.Mean;
 
             % calculate mean and variance of the forecast
             xfm = mean(xf, 2);
@@ -56,7 +59,7 @@ classdef RHF < datools.statistical.ensemble.EnF
             xf = repmat(xfm, 1, ensN) + Af;
 
             % Observable
-            Hxf = observation.observeWithoutError(tc, xf);
+            Hxf = obs.observeWithoutError(xf);
             % mean of observable
             Hxfm = mean(Hxf, 2);
 
@@ -64,67 +67,111 @@ classdef RHF < datools.statistical.ensemble.EnF
             ind1 = 1:ensN - 1;
             ind2 = 2:ensN;
 
-            % assimilate each state variable
-            for i = 1:size(xf, 1)
-                % sort the forecast ensemble
-                %xfs = sorted forecast ensemble
-                [xfs, sortin] = sort(xf(i, :));
+            % assimilate each state variable according to the tail
+            if strcmp(obj.Tail, 'Gaussian') == 1
+                for i = 1:size(xf, 1) % refactor to make only observed variable
+                    % sort the forecast ensemble
+                    [xfs, sortIndex] = sort(xf(i, :));
+                    [~, index2] = sort(sortIndex);
 
-                priorht = zeros(1, ensN+1);
-                % find the height of uniform part
-                for ii = 2:ensN
-                    priorht(ii) = 1 / ((ensN + 1) * abs((xfs(ii) - xfs(ii-1))));
-                end
+                    priorht = zeros(1, ensN+1);
+                    % find the height of uniform part
+                    for ii = 2:ensN
+                        priorht(ii) = 1 / ((ensN + 1) * abs((xfs(ii) - xfs(ii-1))));
+                    end
 
-                Var = xfv(i);
+                    Var = xfv(i);
 
-                if strcmp(obj.Tail, 'Gaussian') == 1
                     % find the mean of the left gaussian tail
                     muleft = xfs(1) - sqrt(2*Var) * erfinv(2/(ensN + 1)-1);
                     % find the mean of the right gaussian tail
                     muright = xfs(end) - sqrt(2*Var) * erfinv(1-2/(ensN + 1));
                     mu = [muleft, muright];
-                else
-                    error('Only Gaussian Tail is supported as of now');
+
+                    % calculate the likelihood for this state
+                    % we assume that observations for each state are considered
+                    % independent
+                    d = y(i) - sort(Hxf(i, :));
+                    likelihood = 1 / sqrt(2*R(i, i)*pi) * exp(-0.5*(d.^2)/R(i, i));
+                    % likelihood = likelihood / min(likelihood); % for scaling
+                    likelihood = [likelihood(1), 0.5 * (likelihood(ind1) + likelihood(ind2)), likelihood(end)];
+
+                    % find the posterior ht
+                    postht = zeros(1, ensN+1);
+                    for jj = 2:ensN
+                        postht(jj) = priorht(jj) .* likelihood(jj);
+                    end
+
+                    % find total area to normalize everything
+                    area = [likelihood(1) * 0.5 * (1 + erf((xfs(1) - muleft)/(sqrt(2*Var)))), ...
+                        (xfs(ind2) - xfs(ind1)) .* (postht(2:end-1)), ...
+                        likelihood(end) .* (1 - 0.5 * (1 + erf((xfs(end) - muright)/(sqrt(2*Var)))))];
+                    % find total sum of area
+                    ta = sum(area);
+                    % Normalize the area
+                    area = area / ta;
+
+                    % normalize the posterior height
+                    postht = postht / ta;
+
+                    % find scaling factors for the tails
+                    tailscale = [likelihood(1), likelihood(end)];
+                    tailscale = tailscale / ta;
+                    % find the updated posterior points/particles
+                    tempa = findPosGauss(postht, ensN, area, xfs, tailscale, Var, mu);
+                    xas(i, :) = tempa(index2);
+                end
+            elseif strcmp(obj.Tail, 'Flat') == 1
+                for i = 1:size(xf, 1) % refactor to make only observed variable
+                    % sort the forecast ensemble
+                    [xfs, sortIndex] = sort(xf(i, :));
+                    [~, index2] = sort(sortIndex);
+
+                    % tail length
+                    tailLengthLeft = 1 * (xfs(end) - xfs(1));
+                    tailLengthRight = 1 * (xfs(end) - xfs(1));
+                    if xfs(1) - tailLengthLeft < obj.LeftBound
+                        tailLengthLeft = xfs(1) - obj.LeftBound;
+                    end
+
+                    if xfs(end)+tailLengthRight>obj.RightBound
+                        tailLengthRight = obj.RightBound - xfs(end);
+                    end
+
+                    % length of the entire domain
+                    lens = [tailLengthLeft, xfs(ind2) - xfs(ind1), tailLengthRight];
+
+                    % calculate the height of the prior rectangles
+                    priorht = 1 ./ (lens * (ensN + 1));
+
+                    % calculate the likelihood for this state
+                    % we assume that observations for each state are considered
+                    % independent
+                    d = y(i) - sort(Hxf(i, :));
+                    likelihood = 1 / sqrt(2*R(i, i)*pi) * exp(-0.5*(d.^2)/R(i, i));
+                    % likelihood = likelihood / min(likelihood); % for scaling
+                    likelihood = [likelihood(1), 0.5 * (likelihood(ind1) + likelihood(ind2)), likelihood(end)];
+
+                    % find the posterior height of the uniform parts
+                    postht = priorht .* likelihood;
+                    area = postht .* lens;
+
+                    % normalizethe area
+                    ta = sum(area);
+                    area = area / ta;
+                    postht = postht / ta;
+
+                    % find the updated posterior points/particles
+                    tempa = findPosFlat(postht, ensN, area, xfs, tailLengthLeft);
+                    xas(i, :) = tempa(index2);
                 end
 
-                % calculate the likelihood for this state
-                d = y(i) - sort(Hxf(i, :));
-                ntemp = length(y(i));
-                likelihood = (diag((1 / sqrt((2 * pi)^ntemp*R(i, i)))* ...
-                    exp(-0.5*d.'*(R(i, i) \ d)))).';
-                likelihood = likelihood / min(likelihood); % for scaling
-                likelihood = [likelihood(1), 0.5 * (likelihood(ind1) + likelihood(ind2)), likelihood(end)];
-
-                % find the posterior ht
-                postht = zeros(1, ensN+1);
-                for jj = 2:ensN
-                    postht(jj) = priorht(jj) .* likelihood(jj);
-                end
-
-                % find total area to normalize everything
-                area = [likelihood(1) * 0.5 * (1 + erf((xfs(1) - muleft)/(sqrt(2*Var)))), ...
-                    (xfs(ind2) - xfs(ind1)) .* (postht(2:end-1)), ...
-                    likelihood(end) .* (1 - 0.5 * (1 + erf((xfs(end) - muright)/(sqrt(2*Var)))))];
-                % find total sum of area
-                ta = sum(area);
-                % Normalize the area
-                area = area / ta;
-
-                % normalize the posterior height
-                postht = postht / ta;
-
-                % find scaling factors for the tails
-                tailscale = [likelihood(1), likelihood(end)];
-                tailscale = tailscale / ta;
-                % find the updated posterior points/particles
-                tempa = findpos(postht, ensN, area, xfs, tailscale, Var, mu);
-                xas(i, :) = tempa(sortin);
             end
+
             % end of function
 
             obj.Ensemble = xas;
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
         end
 
         %end of method
@@ -132,19 +179,19 @@ classdef RHF < datools.statistical.ensemble.EnF
     %end of class
 end
 
-function pts = findpos(postht, ensN, area, xfs, tailscale, V, mu)
-pts = zeros(1, ensN);
-for i = 1:ensN
+function pts = findPosGauss(postht, N, area, xfs, tailscale, V, mu)
+pts = zeros(1, N);
+for i = 1:N
     temp = area;
-    A = i / (ensN + 1);
-    for j = 1:ensN + 1
+    A = i / (N + 1);
+    for j = 1:N + 1
         if temp(j) < A
             A = A - temp(j);
             temp(j) = 0;
         else
             if j == 1
                 pts(i) = sqrt(2*V) * erfinv(2*(A / tailscale(1))-1) + mu(1);
-            elseif j == ensN + 1
+            elseif j == N + 1
                 pts(i) = sqrt(2*V) * erfinv(1-2*(A / tailscale(2))) + mu(2);
             else
                 pts(i) = xfs(j-1) + A / postht(j);
@@ -155,17 +202,23 @@ for i = 1:ensN
 end
 end
 
-
-% extra functions not useful at this time.
-function area = riemannsum(x, pdf)
-dx = abs(x(2)-x(1));
-temp = dx * pdf;
-area = sum(temp(1:end-1));
+function pts = findPosFlat(postht, N, area, xfs, tailLength)
+pts = zeros(1, N);
+for i = 1:N
+    temp = area;
+    A = i / (N + 1);
+    for j = 1:N + 1
+        if temp(j) < A
+            A = A - temp(j);
+            temp(j) = 0;
+        else
+            if j == 1
+                pts(i) = xfs(1) - tailLength + A / postht(j);
+            else
+                pts(i) = xfs(j-1) + A / postht(j);
+            end
+            break;
+        end
+    end
 end
-
-function xp = riemannsearch(x, y, area)
-dx = abs(x(2)-x(1));
-darea = dx * y;
-cumarea = cumsum(darea);
-xp = x(find(cumarea-area > 0, 1));
 end

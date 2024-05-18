@@ -1,10 +1,12 @@
-classdef FETPF < datools.statistical.ensemble.EnF
+classdef FETPF < datools.filter.ensemble.EnF
 
     properties
         B
         Bsqrt
         SurrogateEnsN
         Laplace
+
+        Name = 'Fancy ETPF' % Please check
     end
 
     methods
@@ -22,7 +24,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1}, kept);
 
             obj.B = s.B;
             if iscell(obj.B)
@@ -42,24 +44,25 @@ classdef FETPF < datools.statistical.ensemble.EnF
 
     methods
 
-        function analysis(obj)
+        function analysis(obj, obs)
             %ANALYSIS   Method to overload the analysis function
             %
             %   ANALYSIS(OBJ) assimilates the current observation with the
             %   background/prior information to get a better estimate
             %   (analysis/posterior)
+
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
             
             inflation = obj.Inflation;
             tau = obj.Rejuvenation;
 
             ensM = obj.SurrogateEnsN;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-            
-            R = obj.Observation.Covariance;
 
             dR = decomposition(R, 'chol');
 
@@ -136,7 +139,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             Afrak = [Af, inflation * Asynth];
             chiF = xfm + Afrak;
 
-            Hchif = obj.Observation.observeWithoutError(tc, chiF);
+            Hchif = obs.observeWithoutError(chiF);
 
             xdist = zeros(size(chiF));
 
@@ -145,7 +148,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
                 xdist(i, :) = vecnorm(X_temp, 2).^2;
             end
 
-            t0 = Hchif - obj.Observation.Y;
+            t0 = Hchif - y;
 
             % more efficient way of calculating weights
             as = (-0.5 * sum(t0.*(dR \ t0), 1)).';
@@ -174,7 +177,7 @@ classdef FETPF < datools.statistical.ensemble.EnF
             % completeness
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
         end
 

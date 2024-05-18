@@ -1,7 +1,7 @@
 classdef EnKF < datools.filter.ensemble.EnF
 
     properties
-        Name = "Ensemble Kalman Filter"
+        Name = "Ensemble Kalman Filter with Perturbed Observation"
     end
 
     methods
@@ -21,17 +21,14 @@ classdef EnKF < datools.filter.ensemble.EnF
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-
+            % inflate
             xfm = mean(xf, 2);
-
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation * Af;
-
             xf = repmat(xfm, 1, ensN) + Af;
 
             Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
-
             HAf = Hxf - repmat(Hxfm, 1, ensN);
 
             % tapering

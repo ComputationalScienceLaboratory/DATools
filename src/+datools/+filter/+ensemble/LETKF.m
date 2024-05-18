@@ -1,30 +1,42 @@
-classdef LETKF < datools.statistical.ensemble.EnF
+classdef LETKF < datools.filter.ensemble.EnF
+
+    properties
+        Name = "Localized Ensemble Transform Kalman Filter"
+    end
 
     methods
 
-        function analysis(obj, observation)
+        function analysis(obj, obs)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
 
             inflation = obj.Inflation;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
 
-            R = observation.ErrorModel.Covariance;
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
 
-            y = observation.Y;
+            % R = obs.ErrorModel.Covariance;
+
+            % y = obs.Y;
 
             xfm = mean(xf, 2);
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation * Af / sqrt(ensN-1);
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = observation.observeWithoutError(tc, xf);
+            Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
             HAf = Hxf - repmat(Hxfm, 1, ensN);
 
-            Hi = observation.Indices;
+            Hi = obs.Indices;
 
             Aa = zeros(size(Af));
             xam = zeros(size(xfm));
@@ -36,7 +48,7 @@ classdef LETKF < datools.statistical.ensemble.EnF
                 if isempty(obj.Localization)
                     C = speye(size(invR));
                 else
-                    C = obj.Localization(tc, xfm, Hi, k);
+                    C = obj.Localization(xfm, Hi, k);
                 end
 
                 T = sqrtm(speye(ensN)+HAf.'*(C * invR)*HAf);
@@ -47,7 +59,7 @@ classdef LETKF < datools.statistical.ensemble.EnF
 
             xa = sqrt(ensN-1) * Aa + repmat(xam, 1, ensN);
             obj.Ensemble = xa;
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
         end
 

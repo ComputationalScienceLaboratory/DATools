@@ -6,8 +6,8 @@ classdef Model < handle
     %   Model errors can be incorporated using the SynthError
 
     properties
-        ODEModel
-        Solver
+        ODEModel  %refactor as this may not be an ode or otp problem 
+        Solver % refactor because a test problem can come with its own solver
         SolverTLM
         Uncertainty
     end
@@ -76,7 +76,7 @@ classdef Model < handle
             end
 
             time = t(end) - t(1);
-            %yend = y(end, :).';
+            % yend = yend(end, :).';
 
         end
 
@@ -111,7 +111,7 @@ classdef Model < handle
             end
 
             time = t(end) - t(1);
-            %yend = y(end, :).';
+            % yend = yend(end, :).';
 
         end
 

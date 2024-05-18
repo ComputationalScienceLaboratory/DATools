@@ -6,7 +6,7 @@ classdef EnF < datools.DABase
 
     properties
         Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
-        Ensemble % current ensemble values for all the states
+        Ensemble % current ensemble values for all the states (State X Ensemble)
         Anomalies % Anomalies
         Weights % Weight of each particle/ensemble
         Inflation % inflation constant
@@ -19,7 +19,7 @@ classdef EnF < datools.DABase
     end
 
     properties (Dependent)
-        MeanEstimate % Current estimate of the particles/ensembles
+        MeanEstimate % Current (Mean) estimate of the particles/ensembles
         CovarianceEstimate
         NumEnsemble % Number of ensemble members
     end
@@ -42,7 +42,8 @@ classdef EnF < datools.DABase
 
             p = inputParser;
             p.KeepUnmatched = true;
-            addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
+            %addRequired(p, 'Model', @(x) isa(x, 'datools.Model')); % remove this constraint
+            addRequired(p, 'Model');
             addParameter(p, 'InitialEnsemble', 0);
             addParameter(p, 'Inflation', 1);
             addParameter(p, 'Rejuvenation', 0);

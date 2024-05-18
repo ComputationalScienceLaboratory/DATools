@@ -3,12 +3,16 @@ close all;
 
 % time steps
 Delta_t = 0.12;
+filtername = 'DEnKF';
+filterType = 'Particle';
 
 % Time Stepping Methods (Use ode45 or write your own)
-solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
-solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+% solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+% solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 % solvermodel = @(f, t, y) ode45(f, t, y);
 % solvernature = @(f, t, y) ode45(f, t, y);
+solvermodel = @(f, t, y) datools.utils.eDP54(f, t, y);
+solvernature = @(f, t, y) datools.utils.eDP54(f, t, y);
 
 % Define ODE
 natureODE = otp.lorenz63.presets.Canonical;
@@ -31,10 +35,12 @@ naturetomodel = @(x) x;
 
 % observe these variables
 observeindicies = 1:1:natureODE.NumVars;
+% observeindicies = 1:2:3;
 
 nobsvars = numel(observeindicies);
 
-R = (8 / 1) * speye(nobsvars);
+% R = (1/ 1) * speye(nobsvars);
+R = (1 / 1) * eye(nobsvars); % for EnGMF
 
 % Observaton model (Gaussian here)
 obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
@@ -57,9 +63,9 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 % ensNs = 10:5:25;
 % infs = 1.01:0.01:1.04;
 
-ensNs = [5, 15, 25, 50];
-%ensNs = [10 50 100 200];
-infs = [1.01, 1.02, 1.05, 1.10];
+ensNs = [8, 16, 24, 32];
+% ensNs = [10 50 100 200];
+infs = [1.00, 1.03, 1.07, 1.10];
 rejs = 2 * logspace(-2, -1, 4);
 rejs = round(rejs, 2);
 %rejs = [0.02 0.12 0.15 0.20];
@@ -93,7 +99,8 @@ for runn = runsleft.'
     [ensNi, infi] = ind2sub([numel(ensNs), numel(infs)], runn);
     [ensNi, reji] = ind2sub([numel(ensNs), numel(rejs)], runn);
 
-    fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
+    % fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
+    fprintf('N: %d, rejs: %.3f\n', ensNs(ensNi), rejs(reji));
 
     ns = 1;
     sE = zeros(ns, 1);
@@ -112,7 +119,7 @@ for runn = runsleft.'
         %localization = [];
 
         % define the statistical/variational model here
-        filter = datools.filter.ensemble.EnKF(model, ...
+        filter = datools.filter.ensemble.(filtername)(model, ...
             'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
@@ -135,9 +142,10 @@ for runn = runsleft.'
 
         % Assimilation
         for i = 1:times
-            % forecast
+            % evolve the truth
             nature.evolve();
-
+            
+            % forecast 
             if do_enkf
                 filter.forecast();
             end
@@ -148,7 +156,7 @@ for runn = runsleft.'
             observation.Uncertainty.Mean = y;
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(filter, xt,y);
+            datools.utils.stat.RH(filter, xt, y);
 
             % analysis
 
@@ -181,7 +189,7 @@ for runn = runsleft.'
             end
 
         end
-        hold off;
+        
 
         if isnan(rmse)
             rmse = 1000;

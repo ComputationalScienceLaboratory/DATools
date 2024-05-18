@@ -21,7 +21,7 @@ classdef BPF < datools.filter.ensemble.EnF
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
             
-            R = observation.ErrorModel.Covariance;
+            R = obs.Uncertainty.Covariance;
 
             Hxf = obs.observeWithoutError(xf);
 

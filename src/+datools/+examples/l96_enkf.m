@@ -3,6 +3,7 @@ close all;
 
 % time steps
 Deltat = 0.05;
+filtername = 'EnKF';
 
 % Time Stepping Methods (Use ode45 or write your own)
 solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
@@ -33,6 +34,8 @@ observeindicies = 1:1:natureODE.NumVars;
 nobsvars = numel(observeindicies);
 
 R = (1 / 1) * speye(nobsvars);
+% R = (1 / 1) * eye(nobsvars); % for EnGMF
+
 
 obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 observation = datools.observation.Indexed(model.NumVars, ...
@@ -55,7 +58,8 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
 ensNs = [15, 25, 50, 100];
 infs = [1.01, 1.02, 1.05, 1.10];
-rejs = [1.01, 1.02, 1.03, 1.05];
+rejs = 2 * logspace(-2, -1, 4);
+rejs = round(rejs, 2);
 
 % variables for which you need the rank histogram plot
 histvar = 1:1:nobsvars;
@@ -84,6 +88,7 @@ f4 = figure;
 
 for runn = runsleft.'
     [ensNi, infi] = ind2sub([numel(ensNs), numel(infs)], runn);
+    [ensNi, reji] = ind2sub([numel(ensNs), numel(rejs)], runn);
 
     fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
 
@@ -91,6 +96,7 @@ for runn = runsleft.'
     sE = zeros(ns, 1);
 
     inflationAll = infs(infi);
+    rejAll = rejs(reji);
     ensN = ensNs(ensNi);
 
     for sample = 1:ns
@@ -98,26 +104,28 @@ for runn = runsleft.'
         rng(17+sample-1);
 
         inflation = inflationAll;
+        rejuvenation = rejAll;
 
         % No localization
 
         r = 4;
         d = @(y, i, j) modelODE.DistanceFunction(0, y, i, j);
-        %localization = [];
+        
 
-
-        localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
+        localization = [];
+        %localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
+        % localization = @(y, H, k) datools.tapering.rloc.gc(y, r, d, H, k);
         %$localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
 
 
-        filter = datools.filter.ensemble.EnKF(model, ...
+        filter = datools.filter.ensemble.(filtername)(model, ...
             'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'Inflation', inflation, ...
             'Localization', localization, ...
             'Parallel', false, ...
             'RankHistogram', histvar, ...
-            'Rejuvenation', 0.1);
+            'Rejuvenation', rejuvenation);
 
         filter.MeanEstimate = natureODE.Y0;
 
@@ -150,7 +158,7 @@ for runn = runsleft.'
             observation.Uncertainty.Mean = y;
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(filter, xt,y);
+            datools.utils.stat.RH(filter, xt, y);
 
             % analysis
 
