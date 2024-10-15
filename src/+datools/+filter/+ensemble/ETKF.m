@@ -1,4 +1,6 @@
 classdef ETKF < datools.filter.ensemble.EnF
+    % Ensemble Transform Kalman Filter
+    % citation/reference
     properties
         Name = "Ensemble Transform Kalman Filter"
     end

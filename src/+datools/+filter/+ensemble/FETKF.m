@@ -1,5 +1,6 @@
 classdef FETKF < datools.filter.ensemble.EnF
-
+    % Fancy Ensemble Transform Kalman Filter
+    % citation/reference
     properties
         B
         Bsqrt
@@ -7,8 +8,7 @@ classdef FETKF < datools.filter.ensemble.EnF
         SurrogateEnsN
         Laplace
         Gamma
-
-        Name = 'Fancy ETKF' % Please check
+        Name = 'Fancy Ensemble Transform Kalman Filter' % Please check
     end
 
     methods

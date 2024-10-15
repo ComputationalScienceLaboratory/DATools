@@ -1,6 +1,6 @@
 % run this script to test against some standard time invariant 2D problems
 % Problems available
-% SineWave, Normal Normal Squared (add others)
+% SineWave, Normal Normal Squared, Normal Gamma (add others)
 %
 clear;
 close all;
@@ -9,9 +9,9 @@ clc;
 f1 = figure;
 f2 = figure;
 
-N = 200; % number of particle/ensemble
-problem = 'SineWave';
-filterName = 'EnKF'; % Run filter of your choice
+N = 500; % number of particle/ensemble
+problem = 'bimodalGaussian'; % choose the problem
+filterName = 'ETPF'; % Run filter of your choice
 xf = getEnsembles(problem,N);
 observeIndex = 1;
 unobservIndex = 2;
@@ -19,8 +19,8 @@ unobservIndex = 2;
 % observation operators
 HTemp = eye(2);
 H = HTemp(observeIndex, :);
-y = 0.75;
-sigmaObserv = 0.25;
+y = 2.5;
+sigmaObserv = 0.5;
 R = sigmaObserv^2 * eye(1);
 timeCurrent = 0;
 
@@ -31,16 +31,19 @@ observation = datools.observation.Indexed(2, ...
     'Indices', observeIndex);
 observation.Uncertainty.Mean = y;
 
-modelODE = @(x, t) model2D(x, t); % x can be different 2d cases name
+modelODE = datools.ODEModel();
+modelODE.Y0 = mean(xf,2); % this is the mean of current states
+modelODE.TimeSpan = [0, 0]; % this is time invariant
+
 solvermodel = @(f, t, y) ode45(f, t, y);
 
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 
-filter = datools.filter.ensemble.(filterName)([], 'InitialEnsemble', xf);
+filter = datools.filter.ensemble.(filterName)(model, 'InitialEnsemble', xf);
 
 filter.analysis(observation);
 
-xa = filter.MeanEstimate;
+xa = filter.Ensemble;
 
 %% plot
 % the prior
@@ -52,8 +55,12 @@ xa = filter.MeanEstimate;
 function [xf] = getEnsembles(name,N)
 switch name
     case 'SineWave'
-        xf = datools.examples.twoDProblems.sineWave(N);
-    case 'Normal Normal Squared'
-        xf = datools.examples.twoDProblems.normalNormalsq(N);
+        [xf, ~] = datools.toyproblems.twoD.sineWave(N);
+    case 'NormalNormalSquared'
+        [xf, ~] = datools.toyproblems.twoD.normalNormalsq(N);
+    case 'NormalGamma'
+        [xf, ~] = datools.toyproblems.twoD.normalGamma(N);
+    case 'bimodalGaussian'
+        [xf, ~] = datools.toyproblems.twoD.bimodalGaussian(N);
 end
 end

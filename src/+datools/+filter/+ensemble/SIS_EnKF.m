@@ -1,5 +1,6 @@
 classdef SIS_EnKF < datools.filter.ensemble.EnF
-
+    % Sequence Importance Sampling with EnKF
+    % citation/reference
     properties
         Name = "Sequence Importance Sampling with EnKF"
     end

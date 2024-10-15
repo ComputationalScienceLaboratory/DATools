@@ -1,11 +1,12 @@
 classdef ETPF < datools.filter.ensemble.EnF
-
+    % Ensemble Transport Particle Filter
+    % citation/reference
     properties
         SinkhornKnoppLambda = 0;
         SinkhornKnoppIterations = 10;
         SecondOrderCorrection = false;
         LocalizationEnsembleDistance;
-        Name = "Ensemble Transform Particle Filter"
+        Name = "Ensemble Transport Particle Filter"
     end
 
     methods

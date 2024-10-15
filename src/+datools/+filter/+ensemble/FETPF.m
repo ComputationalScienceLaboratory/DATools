@@ -1,12 +1,12 @@
 classdef FETPF < datools.filter.ensemble.EnF
-
+    % Fancy Ensemble Transport Particle Filter
+    % citation/reference
     properties
         B
         Bsqrt
         SurrogateEnsN
         Laplace
-
-        Name = 'Fancy ETPF' % Please check
+        Name = 'Fancy Ensemble Transport Particle Filter' % Please check
     end
 
     methods

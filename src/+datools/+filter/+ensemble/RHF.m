@@ -1,5 +1,6 @@
 classdef RHF < datools.filter.ensemble.EnF
-
+    % Rank Histogram Filter (Anderson)
+    % citation/reference
     properties
         Tail % the kind of tail it is
         Truncate % equal truncation length on each flat tail

@@ -1,5 +1,6 @@
-classdef LFETKF < datools.statistical.ensemble.EnF
-
+classdef LFETKF < datools.filter.ensemble.EnF
+    % Localized Fancy Ensemble Transform Kalman Filter
+    % citation/reference
     properties
         B
         Bsqrt
@@ -7,6 +8,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
         SurrogateEnsN
         Laplace
         Gamma
+        Name = "Localized Fancy Ensemble Transform Kalman Filter"
     end
 
     methods
@@ -24,7 +26,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1}, kept);
 
             obj.B = s.B;
             obj.Bsqrt = s.Bsqrt;
@@ -44,12 +46,12 @@ classdef LFETKF < datools.statistical.ensemble.EnF
             
             inflation = obj.Inflation;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
             
-            R = observation.ErrorModel.Covariance;
+            R = observation.Uncertainty.Covariance;
 
 
             xfm = mean(xf, 2);

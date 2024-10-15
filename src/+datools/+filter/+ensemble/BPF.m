@@ -1,5 +1,6 @@
 classdef BPF < datools.filter.ensemble.EnF
-
+    % Bootstrap Particle Filter
+    % citations/references
     properties
         Name = "Bootstrap Particle Filter"
     end
@@ -56,7 +57,7 @@ classdef BPF < datools.filter.ensemble.EnF
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.MeanEstimate);
+            obj.Model.update(0, obj.MeanEstimate); % t=0 here because we do analysis
 
 
         end

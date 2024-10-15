@@ -2,19 +2,25 @@ clear;
 close all;
 
 % time steps
-Deltat = 0.0109;
+dt = 0.0109;
+filtername = 'EnKF';
+filterType = 'Ensemble';
 
 % Time Stepping Methods (Use ode45 or write your own)
-solvermodel = @(f, t, y) ode45(f, t, y);
-solvernature = @(f, t, y) ode45(f, t, y);
+% solvermodel = @(f, t, y) ode45(f, t, y);
+% solvernature = @(f, t, y) ode45(f, t, y);
+% solvermodel = @(f, t, y) datools.utils.eDP54(f, t, y);
+% solvernature = @(f, t, y) datools.utils.eDP54(f, t, y);
+solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 
 % Define ODE
-natureODE = otp.qg.presets.Canonical('Size', [63, 127]);
+natureODE = otp.quasigeostrophic.presets.Canonical('Size', [63, 127]);
 nature0 = natureODE.Y0;
-natureODE.TimeSpan = [0, Deltat];
+natureODE.TimeSpan = [0, dt];
 
-modelODE = otp.qg.presets.Canonical('Size', [63, 127]);
-modelODE.TimeSpan = [0, Deltat];
+modelODE = otp.quasigeostrophic.presets.Canonical('Size', [63, 127]);
+modelODE.TimeSpan = [0, dt];
 
 % initialize model
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
@@ -29,20 +35,20 @@ observeindicies = round(linspace(1, natureODE.NumVars, nobsvars));
 
 R = (1 / 1) * speye(nobsvars);
 
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
+natureobserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 %obserrormodel = datools.error.Tent;
 observation = datools.observation.Indexed(model.NumVars, ...
-    'ErrorModel', obserrormodel, ...
+    'Uncertainty', natureobserrormodel, ...
     'Indices', observeindicies);
 
 
 % We make the assumption that there is no model error
-modelerror = datools.error.Error;
+modelerror = datools.uncertainty.NoUncertainty;
 
 %ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
 
-load('qgtrajectory.mat')
+load('+datools/+examples/+sandu/private/qgtrajectory.mat')
 y = y.';
 Nt = size(y, 2);
 
@@ -123,9 +129,8 @@ for runn = runsleft.'
         %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
 
 
-        filter = datools.statistical.ensemble.EnKF(model, ...
-            'Observation', observation, ...
-            'NumEnsemble', ensN, ...
+        filter = datools.filter.ensemble.(filtername)(model, ...
+            'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'ModelError', modelerror, ...
             'EnsembleGenerator', ensembleGenerator, ...
             'Inflation', inflation, ...
@@ -136,8 +141,9 @@ for runn = runsleft.'
         
         %filterglobal = filter;
 
-        filter.setMean(natureODE.Y0);
-        filter.scaleAnomalies(1/10);
+        % filter.setMean(natureODE.Y0);
+        % filter.scaleAnomalies(1/10);
+        filter.MeanEstimate = natureODE.Y0;
 
         % define steps and spinups
         %spinup = 5;
@@ -163,8 +169,8 @@ for runn = runsleft.'
 
 
             % observe
-            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
+            xt = naturetomodel.observeWithoutError(nature.ODEModel.TimeSpan(1), nature.State);
+            y = filter.Observation.observeWithError(model.ODEMOdel.TimeSpan(1), xt);
 
             % Rank histogram (if needed)
             datools.utils.stat.RH(filter, xt);

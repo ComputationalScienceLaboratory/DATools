@@ -1,4 +1,4 @@
-clear all; close all;
+clear all; close all; clc;
 
 %% User Inputs%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Use this to run Lorenz96 experiments
@@ -58,26 +58,30 @@ fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n
 Dt = 0.05;
 
 % Time Stepping Methods (Use ode45 or write your own)
-solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
-solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+% solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+% solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 1);
+solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 
-% Define ODE
+% Define ODE for the truth
 natureODE = otp.lorenz96.presets.Canonical;
 nature0 = randn(natureODE.NumVars, 1);
 natureODE.TimeSpan = [0, Dt];
 
+% define ODE for the model
 modelODE = otp.lorenz96.presets.Canonical;
 modelODE.TimeSpan = [0, Dt];
 
-% Propogate the model
+% Propogate the truth
 [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
-% initialize model
+% initialize model object
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
 nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 
-% Observation Model
+% Observation object that maps from nature to model
+% define H. Need to have an option using linearized H (user must supply)
 naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
@@ -88,15 +92,14 @@ nobsvars = numel(observeindicies);
 
 R = variance * speye(nobsvars);
 
-% Observaton model (Gaussian here)
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
-
+% Observaton model object (Gaussian here)
+obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 observation = datools.observation.Indexed(model.NumVars, ...
-    'ErrorModel', obserrormodel, ...
+    'Uncertainty', obserrormodel, ...
     'Indices', observeindicies);
 
 % We make the assumption that there is no model error
-modelerror = datools.error.Error;
+modelerror = datools.uncertainty.NoUncertainty;
 
 % This can be used to generate ensemble if needed
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
@@ -179,17 +182,15 @@ for runn = runsleft.'
 
         switch filtername
             case 'EnKF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
-                    'Observation', observation, ...
-                    'NumEnsemble', ensN, ...
-                    'ModelError', modelerror, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
+                    'InitialEnsemble', ensembleGenerator(ensN)/10, ...
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Inflation', inflation, ...
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
             case 'ETKF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
@@ -199,7 +200,7 @@ for runn = runsleft.'
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
             case 'LETKF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
@@ -209,7 +210,7 @@ for runn = runsleft.'
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
             case 'SIR'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
@@ -219,7 +220,7 @@ for runn = runsleft.'
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
             case 'ETPF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
@@ -229,7 +230,7 @@ for runn = runsleft.'
                     'RankHistogram', histvar, ...
                     'Rejuvenation', rejuvenation);
             case 'RHF'
-                filter = datools.statistical.ensemble.(filtername)(model, ...
+                filter = datools.filter.ensemble.(filtername)(model, ...
                     'Observation', observation, ...
                     'NumEnsemble', ensN, ...
                     'ModelError', modelerror, ...
@@ -241,9 +242,10 @@ for runn = runsleft.'
 
         end
 
-        filter.setMean(natureODE.Y0);
-        filter.scaleAnomalies(1/10);
-
+        % filter.setMean(natureODE.Y0);
+        % filter.scaleAnomalies(1/10);
+        
+        filter.MeanEstimate = natureODE.Y0;
         mses = zeros(steps-spinup, 1);
 
         rmse = nan;
@@ -262,8 +264,11 @@ for runn = runsleft.'
             end
 
             % observe
-            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
+            xt = naturetomodel.observeWithoutError(nature.ODEModel.TimeSpan(1), nature.State);
+            % y = filter.Observation.observeWithError(model.TimeSpan(1), xt);
+            y = observation.observeWithError(xt);
+            observation.Uncertainty.Mean = y;
+
 
             % Rank histogram (if needed)
             datools.utils.stat.RH(filter, xt);
@@ -271,13 +276,13 @@ for runn = runsleft.'
             % analysis
             % try
             if dofilter
-                filter.analysis(R, y);
+                filter.analysis(observation);
             end
             %catch
             %    dofilter = false;
             %end
 
-            xa = filter.BestEstimate;
+            xa = filter.MeanEstimate;
 
             err = xt - xa;
 

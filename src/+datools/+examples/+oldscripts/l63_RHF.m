@@ -18,7 +18,7 @@ modelODE = otp.lorenz63.presets.Canonical;
 modelODE.TimeSpan = [0, Delta_t];
 
 % Propogate
-[tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
+[tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
@@ -27,7 +27,6 @@ nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
 naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
     speye(natureODE.NumVars));
 
-N:50, inf:1.020
 %observeindicies = 1:natureODE.NumVars;
 observeindicies = 1:1:natureODE.NumVars;
 
@@ -35,7 +34,7 @@ nobsvars = numel(observeindicies);
 
 R = (1 / 1) * speye(nobsvars);
 
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
+obserrormodel = datools.uncertainty.Gaussian('CovarianceSqrt', sqrtm(R));
 %obserrormodel = datools.error.Tent;
 observation = datools.observation.Indexed(model.NumVars, ...
     'ErrorModel', obserrormodel, ...

@@ -1,7 +1,8 @@
 classdef EnKF < datools.filter.ensemble.EnF
-
+    % Ensemble Kalman Filter with Perturbed Observation
+    % citation/reference
     properties
-        Name = "Ensemble Kalman Filter with Perturbed Observation"
+        Name = "Ensemble Kalman Filter"
     end
 
     methods
@@ -55,8 +56,7 @@ classdef EnKF < datools.filter.ensemble.EnF
             d = y - Hxfm;
 
             xam = xfm + PfHt * (dS \ d);
-            Aa = Af + PfHt * (dS \ (sqrtm(R) *...
-                randn(size(HAf)) - HAf));
+            Aa = Af + PfHt * (dS \ (sqrtm(R) * randn(size(HAf)) - HAf));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
             obj.Model.update(0, obj.MeanEstimate);

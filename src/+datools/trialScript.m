@@ -1,6 +1,6 @@
 % trial runner script
 clc;
-clear all;
+clear;
 close all;
 
 %% Preliminaries
@@ -19,7 +19,6 @@ filterName = 'EnKF';
 %filtertype = 'Particle';
 filterType = 'Ensemble';
 
-
 % model
 modelName = 'lorenz63';
 
@@ -37,33 +36,33 @@ r = 4;
 % observation error covariance
 variance = 8;
 
-modelError = datools.error.Gaussian; % we ignore model error (for now)
+modelError = datools.uncertainty.Gaussian; % we ignore model error (for now)
 addErrorToModel = false; % default is false (for now)
 
 
 %% decide the type of filter
-% switch filtername
-%     case 'EnKF'
-%         filtertype = 'Ensemble';
-%     case 'ETKF'
-%         filtertype = 'Ensemble';
-%     case 'LETKF'
-%         filtertype = 'Ensemble';
-%     case 'ETPF'
-%         filtertype = 'Particle';
-%     case 'ETPF2'
-%         filtertype = 'Particle';
-%     case 'LETPF'
-%         filtertype = 'Particle';
-%     case 'SIR'
-%         filtertype = 'Particle';
-%     case 'SIS_EnKF'
-%         filtertype = 'Particle';
-%     case 'RHF'
-%         filtertype = 'Ensemble';
-%     case 'EnGMF'
-%         filtertype = 'Ensemble';
-% end
+switch filterName
+    case 'EnKF'
+        filtertype = 'Ensemble';
+    case 'ETKF'
+        filtertype = 'Ensemble';
+    case 'LETKF'
+        filtertype = 'Ensemble';
+    case 'ETPF'
+        filtertype = 'Particle';
+    case 'ETPF2'
+        filtertype = 'Particle';
+    case 'LETPF'
+        filtertype = 'Particle';
+    case 'SIR'
+        filtertype = 'Particle';
+    case 'SIS_EnKF'
+        filtertype = 'Particle';
+    case 'RHF'
+        filtertype = 'Ensemble';
+    case 'EnGMF'
+        filtertype = 'Ensemble';
+end
 fprintf('Filtername = %s, Observation Error Variance = %.2f, Runs = %d, spinups = %d\n', ...
     filterName, variance, steps, spinup);
 

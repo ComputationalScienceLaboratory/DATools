@@ -1,5 +1,6 @@
 classdef Indexed < datools.observation.Observation
-
+    % Derived from the "observation" parent class. This can
+    % be used (for ex.) to observe the state space via indexing.
     properties
         Indices
     end

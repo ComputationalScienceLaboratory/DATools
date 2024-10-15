@@ -1,11 +1,11 @@
 classdef EnF < datools.DABase
-    % This is the base class for all statistical methods
-    % Derive from this class and implement methods/functions as required
-    % Deriving from handle base class allows an object of this class to be
-    % passed by reference.
+    %EnF This is the base class for all statistical methods
+    %   Derive from this class and implement methods/functions as required
+    %   Deriving from handle base class allows an object of this class to be
+    %   passed by reference.
 
     properties
-        Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
+        Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63/96/QG)
         Ensemble % current ensemble values for all the states (State X Ensemble)
         Anomalies % Anomalies
         Weights % Weight of each particle/ensemble
@@ -15,7 +15,7 @@ classdef EnF < datools.DABase
         Parallel % A boolean if parallel threads are used
         RankHistogram % State variables for which RH is needed
         RankValue % store the RH values for each state variables required
-        ResamplingThreshold % threshold below which resampling needs to be done
+        ResamplingThreshold % threshold below which resampling needs to be done (particle filters)
     end
 
     properties (Dependent)
@@ -34,7 +34,7 @@ classdef EnF < datools.DABase
 
     methods
         function obj = EnF(varargin)
-            %ENF   The constructor initializes the properties/attributes
+            % The constructor initializes the properties/attributes
             %
             %   OBJ = ENF(VARARGIN) accepts variable length argument list
             %   VARARGIN and updates the properties/attributes of the object
@@ -115,7 +115,11 @@ classdef EnF < datools.DABase
 
 
         function C = get.CovarianceEstimate(obj)
-
+            %GET.COVARIANCEESTIMATE this estimates the covariance
+            %
+            %   C = GET.COVARIANCEESTIMATE(OBJ) uses an in-built getter
+            %   method, derived from handle class, to return the covariance
+            %   of the ensembles
             w = obj.Weights;
             X = obj.Ensemble;
             Xm = obj.MeanEstimate;

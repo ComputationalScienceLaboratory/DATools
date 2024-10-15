@@ -1,5 +1,6 @@
 classdef UKF < datools.filter.gaussian.GaussianFilter
-
+    % Unscented Kalman Filter
+    % Book: Simo Sarkka (2013). Bayesian Filtering and Smoothing. Cambridge University Press.
     properties
         Alpha
         Beta

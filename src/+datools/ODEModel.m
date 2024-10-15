@@ -9,9 +9,14 @@ classdef ODEModel < handle
         JAVP        % Jacobian Adjoint Vector Product
         HVP         % Hessian Vector Product
         HVAP        % Hessian Vector Adjoint Product
-        TimeSpan    % Time Span for One Step Evolution
-        Y0          % Initial state of the system
+        TimeSpan    % Time Span for One Step Evolution [t, t+1], dt = t+1 - t  (Do we need this?)
+        Y0          % Initial/current state of the system (at 't+1')
         NumVars     % Number of State Variables
+    end
+
+    properties(Dependent)
+        deltaT
+        currTime
     end
     
     methods
@@ -64,9 +69,17 @@ classdef ODEModel < handle
             obj.NumVars = ode.NumVars;
         end
         
-        function assignValuesUser()
+        function assignValuesUser(obj)
             % complete later
             % provide sufficient checks
+        end
+
+        function dt = get.deltaT(obj)
+            dt = obj.TimeSpan(2) - obj.TimeSpan(1);
+        end
+
+        function t = get.currTime(obj)
+            t = obj.TimeSpan(1);
         end
         
     end

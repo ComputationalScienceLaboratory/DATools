@@ -1,24 +1,31 @@
 clear;
 close all;
+clc;
 
 % time steps
-Deltat = 0.05;
+dt = 0.05;
 filtername = 'EnKF';
 
 % Time Stepping Methods (Use ode45 or write your own)
 solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 
-% Define ODE
-natureODE = otp.lorenz96.presets.Canonical;
+% Define ODE for truth 
+otpNature = otp.lorenz63.presets.Canonical;
+% natureODE = otp.lorenz96.presets.Canonical;
+natureODE = datools.ODEModel('OTPObject', otpNature);
 nature0 = randn(natureODE.NumVars, 1);
-natureODE.TimeSpan = [0, Deltat];
+natureODE.TimeSpan = [0, dt];
 
-modelODE = otp.lorenz96.presets.Canonical;
-modelODE.TimeSpan = [0, Deltat];
+% Define ODE for the model
+otpModel = otp.lorenz63.presets.Canonical;
+% modelODE = otp.lorenz96.presets.Canonical;
+modelODE = datools.ODEModel('OTPObject', otpModel);
+modelODE.TimeSpan = [0, dt];
 
 % Propogate
-[tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+% [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+[tt, yy] = ode45(natureODE.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 % initialize model
@@ -113,10 +120,10 @@ for runn = runsleft.'
         
 
         localization = [];
-        %localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
+        % localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
         % localization = @(y, H, k) datools.tapering.rloc.gc(y, r, d, H, k);
-        %$localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
-        %localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
+        % localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
+        % localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);
 
 
         filter = datools.filter.ensemble.(filtername)(model, ...

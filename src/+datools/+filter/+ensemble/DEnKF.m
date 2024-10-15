@@ -1,4 +1,6 @@
 classdef DEnKF < datools.filter.ensemble.EnF
+    % Deterministic EnKF
+    % DOI: https://doi.org/10.1111/j.1600-0870.2007.00299.x
 
     properties
         Name = "DEnKF" % check please
