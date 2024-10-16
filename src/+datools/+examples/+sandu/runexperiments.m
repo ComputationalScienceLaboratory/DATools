@@ -24,6 +24,9 @@ steps = user.steps;
 % localization
 localize = user.localize;
 
+% numberof samples for averaging runs
+numsamples = user.ns;
+
 %% Remaining code%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % rank histogram for the 1st state only (for now)
 histvar = 1:1:1;
@@ -40,6 +43,8 @@ switch filtername
         filtertype = 'Particle';
     case 'RHF'
         filtertype = 'Ensemble';
+    case 'SIS_EnKF'
+        filtertype = 'Particle';
 end
 fprintf('Filtername = %s, Observation Variance = %.2f, Runs = %d, spinups = %d\n', ...
     filtername, variance, steps, spinup);
@@ -62,21 +67,44 @@ end
 switch modelname
     case 'Lorenz63'
         natureODE = otp.lorenz63.presets.Canonical;
+        nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
+        natureODE.TimeSpan = [0, Dt];
+        
         modelODE = otp.lorenz63.presets.Canonical;
+        modelODE.TimeSpan = [0, Dt];
+        
+        % Propogate the model
+        [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+        natureODE.Y0 = yy(end, :).';
     case 'Lorenz96'
         natureODE = otp.lorenz96.presets.Canonical;
+        nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
+        natureODE.TimeSpan = [0, Dt];
+        
         modelODE = otp.lorenz96.presets.Canonical;
+        modelODE.TimeSpan = [0, Dt];
+        
+        % Propogate the model
+        [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+        natureODE.Y0 = yy(end, :).';
+    case 'QG'
+        natureODE = otp.qg.presets.Canonical('Size', [63, 127]);
+        nature0 = natureODE.Y0;
+        natureODE.TimeSpan = [0, Dt];
+        
+        modelODE = otp.qg.presets.Canonical('Size', [63, 127]);
+        modelODE.TimeSpan = [0, Dt];
 end
 
-nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
-natureODE.TimeSpan = [0, Dt];
+% nature0 = randn(natureODE.NumVars, 1); % natureODE.NumVars are the number of variables for the model
+% natureODE.TimeSpan = [0, Dt];
 
 
-modelODE.TimeSpan = [0, Dt];
+%modelODE.TimeSpan = [0, Dt];
 
 % Propogate the model
-[tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
-natureODE.Y0 = yy(end, :).';
+% [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+% natureODE.Y0 = yy(end, :).';
 
 % initialize model
 model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
@@ -142,7 +170,7 @@ for runn = runsleft.'
             ensN = ensNs(ensNi);
     end
 
-    ns = 1;
+    ns = numsamples;
     sE = zeros(ns, 1);
 
     for sample = 1:ns
@@ -212,6 +240,16 @@ for runn = runsleft.'
                     'EnsembleGenerator', ensembleGenerator, ...
                     'Parallel', false, ...
                     'RankHistogram', histvar, ...
+                    'Rejuvenation', rejuvenation);
+            case 'SIS_EnKF'
+                filter = datools.statistical.ensemble.(filtername)(model, ...
+                    'Observation', observation, ...
+                    'NumEnsemble', ensN, ...
+                    'ModelError', modelerror, ...
+                    'EnsembleGenerator', ensembleGenerator, ...
+                    'Inflation', inflation, ...
+                    'Parallel', false, ...
+                    'RankHistogram', histvar,...
                     'Rejuvenation', rejuvenation);
             case 'RHF'
                 filter = datools.statistical.ensemble.(filtername)(model, ...

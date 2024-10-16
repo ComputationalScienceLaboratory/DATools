@@ -1,5 +1,6 @@
 classdef BPF < datools.filter.ensemble.EnF
-
+    % Bootstrap Particle Filter
+    % citations/references
     properties
         Name = "Bootstrap Particle Filter"
     end
@@ -7,6 +8,11 @@ classdef BPF < datools.filter.ensemble.EnF
     methods
 
         function analysis(obj, obs)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
 
             tau = obj.Rejuvenation;
 
@@ -15,6 +21,8 @@ classdef BPF < datools.filter.ensemble.EnF
 
             ensN = obj.NumEnsemble;
             wf = obj.Weights;
+            
+            R = obs.Uncertainty.Covariance;
 
             Hxf = obs.observeWithoutError(xf);
 
@@ -49,7 +57,7 @@ classdef BPF < datools.filter.ensemble.EnF
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.MeanEstimate);
+            obj.Model.update(0, obj.MeanEstimate); % t=0 here because we do analysis
 
 
         end

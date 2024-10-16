@@ -1,5 +1,6 @@
-classdef FETKF < datools.statistical.ensemble.EnF
-
+classdef FETKF < datools.filter.ensemble.EnF
+    % Fancy Ensemble Transform Kalman Filter
+    % citation/reference
     properties
         B
         Bsqrt
@@ -7,6 +8,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
         SurrogateEnsN
         Laplace
         Gamma
+        Name = 'Fancy Ensemble Transform Kalman Filter' % Please check
     end
 
     methods
@@ -18,13 +20,13 @@ classdef FETKF < datools.statistical.ensemble.EnF
             addParameter(p, 'SurrogateEnsembleSize', 2);
             addParameter(p, 'Laplace', false);
 
-            parse(p, varargin{2:end});
+            parse(p, varargin{8:end});
 
             s = p.Results;
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1:7}, kept);
 
             obj.B = s.B;
             obj.Bsqrt = s.Bsqrt;
@@ -35,16 +37,21 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function analysis(obj, R, y)
-
-
+        function analysis(obj, obs)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-
+            
+            R = obs.Uncertainty.Covariance;
 
             xfm = mean(xf, 2);
             n = numel(xfm);
@@ -77,7 +84,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = obs.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -88,7 +95,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
             w = w - repmat(mean(w, 2), 1, ensNW);
             ws = sqrt(gamma) * w / sqrt(ensNW-1);
 
-            Hw = obj.Observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
+            Hw = obs.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
             Hwm = mean(Hw, 2);
             HAw = Hw - repmat(Hwm, 1, ensNW);
 
@@ -101,7 +108,7 @@ classdef FETKF < datools.statistical.ensemble.EnF
 
             TT = (eye(ensN+ensNW) - ZZ.' / S * ZZ);
 
-            d = y - Hxfm;
+            d = obs.Y - Hxfm;
 
             AAa = [Afs, ws] * real(sqrtm(TT));
             Aa = sqrt(ensN-1) * AAa(:, 1:ensN) / sqrt(1-gamma);

@@ -1,6 +1,11 @@
-
-*.asv
 *.mat
+*.asv
 *.png
 *.fig
+<<<<<<< HEAD
+*.pdf
+*.mat
+*.html
+=======
 .DS_Store
+>>>>>>> master

@@ -1,5 +1,8 @@
 classdef (Abstract) Uncertainty < handle
-
+    %UNCERTAINTY This is the base class for all noises. Currently we
+    % support the following kind of uncertainty
+    % Uniform, Gaussian, Laplace, Gaussian Mixture, Empirical
+    % 
     properties (Abstract)
         Mean
         Covariance

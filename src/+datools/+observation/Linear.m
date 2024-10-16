@@ -1,5 +1,6 @@
 classdef Linear < datools.observation.Observation
-
+    % Derived from the "observation" parent class. This can be chosen when
+    % the observation operation is linear.
     properties
         H
     end

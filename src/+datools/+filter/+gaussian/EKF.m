@@ -1,5 +1,6 @@
 classdef EKF < datools.filter.gaussian.GaussianFilter
-
+    % Extended Kalman Filter
+    % references
     properties
         Name = "Extended Kalman Filter";
     end

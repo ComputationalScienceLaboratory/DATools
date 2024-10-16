@@ -1,5 +1,6 @@
 classdef IEKF < datools.filter.gaussian.GaussianFilter
-
+    % Iterated Extended Kalman Filter
+    % DOI: https://doi.org/10.1109/9.250476
     properties
         Name = "Iterated Extended Kalman Filter";
         Tolerance

@@ -1,11 +1,13 @@
 classdef LFETPF < datools.statistical.ensemble.EnF
-
+    % Localized Fancy Ensemble Transport Particle Filter
+    % citation/reference
     properties
         B
         Bsqrt
         SurrogateEnsN
         Laplace
         LocalizationEnsembleDistance
+        Name = "Localized Fancy Ensemble Particle Filter"
     end
 
     methods

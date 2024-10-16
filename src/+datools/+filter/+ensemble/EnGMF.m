@@ -1,5 +1,9 @@
 classdef EnGMF < datools.filter.ensemble.EnF
-
+    % Ensemble Gaussian Mixture Filter
+    % BRUF ---DOI: https://doi.org/10.23919/FUSION52260.2023.10224134
+    % IEKF ---DOI: https://doi.org/10.1109/9.250476
+    % UKF  ---Book: Simo Sarkka (2013). Bayesian Filtering and Smoothing. Cambridge University Press.
+    
     properties
         BandwidthScale
         BRUFSteps

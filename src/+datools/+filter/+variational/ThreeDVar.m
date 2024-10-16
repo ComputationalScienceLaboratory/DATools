@@ -1,4 +1,4 @@
-classdef ThreeDVar < datools.DAmethod
+classdef ThreeDVar < datools.DABase
     %
 
     properties
@@ -8,6 +8,8 @@ classdef ThreeDVar < datools.DAmethod
         State % current state values for all the states
         B % background covariance
         OptAlg % lbfgs or newton
+        CovarianceEstimate % needed bc of class abstraction
+        Name = 'ThreeDvar'
     end
 
     properties (Access=protected)
@@ -15,7 +17,7 @@ classdef ThreeDVar < datools.DAmethod
     end
 
     properties (Dependent)
-        BestEstimate
+        MeanEstimate
     end
 
     methods
@@ -31,10 +33,11 @@ classdef ThreeDVar < datools.DAmethod
             p = inputParser;
             p.KeepUnmatched = true;
             addRequired(p, 'Model', @(x) isa(x, 'datools.Model'));
-            addParameter(p, 'ModelError', datools.error.Error);
+            addParameter(p, 'ModelError', datools.uncertainty.NoUncertainty);
             addParameter(p, 'InitialState', []);
             addParameter(p, 'BackgroundCovariance', []);
             addParameter(p, 'OptimizationType', 'lbfgs', optAlgValFcn);
+            addParameter(p, 'CovarianceEstimate', []);
             parse(p, varargin{:});
 
             s = p.Results;
@@ -65,7 +68,7 @@ classdef ThreeDVar < datools.DAmethod
 
             [~ , yend] = obj.Model.solve([], obj.State);
 
-            obj.State = obj.ModelError.adderr(obj.Model.TimeSpan(end), yend);
+            obj.State = obj.ModelError.addError(yend);
 
 
         end
@@ -86,10 +89,10 @@ classdef ThreeDVar < datools.DAmethod
             xb = obj.State;
             obs = obj.Observation;
 
-            t = obj.Model.TimeSpan(end);
+            t = obj.Model.ODEModel.TimeSpan(end);
 
-            H = @(x) obs.observeWithoutError(t, x);
-            Hadjoint = @(x) obs.linearization(t, x)';
+            H = @(x) obs.observeWithoutError(x);
+            Hadjoint = @(x) obs.linearization(x)';
 
             J = @(x) cost(x, xb, dB, y, dR, H, Hadjoint);
 
@@ -130,7 +133,7 @@ classdef ThreeDVar < datools.DAmethod
 
         end
 
-        function x = get.BestEstimate(obj)
+        function x = get.MeanEstimate(obj)
             x = obj.State;
         end
 

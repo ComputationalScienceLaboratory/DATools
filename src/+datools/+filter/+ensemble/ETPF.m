@@ -1,11 +1,12 @@
 classdef ETPF < datools.filter.ensemble.EnF
-
+    % Ensemble Transport Particle Filter
+    % citation/reference
     properties
         SinkhornKnoppLambda = 0;
         SinkhornKnoppIterations = 10;
         SecondOrderCorrection = false;
-        LocalizationEnsembleDistance
-        Name = "Ensemble Transform Particle Filter"
+        LocalizationEnsembleDistance;
+        Name = "Ensemble Transport Particle Filter"
     end
 
     methods
@@ -47,9 +48,11 @@ classdef ETPF < datools.filter.ensemble.EnF
         end
 
         function analysis(obj, obs)
-
-            %y = obs.Mean;
-            %R = obs.Covariance;
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
 
             tau = obj.Rejuvenation;
 
