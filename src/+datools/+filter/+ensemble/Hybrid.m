@@ -7,7 +7,7 @@ classdef Hybrid < datools.statistical.ensemble.EnF
 
     methods
         function obj = Hybrid(varargin)
-
+            
             p = inputParser;
             p.KeepUnmatched = true;
             addParameter(p, 'Alphas', 1);
@@ -31,11 +31,16 @@ classdef Hybrid < datools.statistical.ensemble.EnF
     methods
 
         function analysis(obj, R, y)
-
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
             tau = obj.Rejuvenation;
 
             X = obj.Ensemble;
             alphas = obj.Alphas;
+            
 
             xf = X;
 

@@ -1,63 +1,72 @@
+% this is a script to run the Lorenz63 example with OTP and we run a twin
+% experiment where we consider we know the truth trajectory. This is,
+% hoever, not always true. 
+
 clear;
 close all;
-% figure;
-% drawnow;
-
-% SETTINGS
-% Uncomment whichever filter you want to run with.
-filterName = 'EnKF';
-% fitlerName = 'ETPF';
-% filterName = 'ETKF';
-
-
-% OTHER STUFF
+clc;
 
 % time steps
-Delta_t = 0.12;
+dt = 0.12;
+filterName = 'ETKF';
+filterType = 'Particle';
 
 % Time Stepping Methods (Use ode45 or write your own)
-% solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 50);
-% solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 50);
-solvermodel = @(f, t, y) ode45(f, t, y);
-solvernature = @(f, t, y) ode45(f, t, y);
+% solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+% solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
+% solvermodel = @(f, t, y) ode45(f, t, y);
+% solvernature = @(f, t, y) ode45(f, t, y);
+solverModel = @(f, t, y) datools.utils.eDP54(f, t, y);
+solverNature = @(f, t, y) datools.utils.eDP54(f, t, y);
 
-% Define ODE
-natureODE = otp.lorenz63.presets.Canonical;
+% Define ODE for truth 
+otpNature = otp.lorenz63.presets.Canonical;
+% natureODE = otp.lorenz63.presets.Canonical;
+natureODE = datools.ODEModel('OTPObject', otpNature);
 nature0 = randn(natureODE.NumVars, 1);
-natureODE.TimeSpan = [0, Delta_t];
+natureODE.TimeSpan = [0, dt]; 
 
-modelODE = otp.lorenz63.presets.Canonical;
-modelODE.TimeSpan = [0, Delta_t];
+% Define ODE for the model
+otpModel = otp.lorenz63.presets.Canonical;
+% modelODE = otp.lorenz63.presets.Canonical;
+modelODE = datools.ODEModel('OTPObject', otpModel);
+modelODE.TimeSpan = [0, dt];
 
-% Propogate
-[tt, yy] = ode45(natureODE.Rhs.F, [0, 10], nature0);
+% Propogate the truth
+% [tt, yy] = ode45(natureODE.RHS.F, [0, 10], nature0);
+[tt, yy] = ode45(natureODE.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
 % initialize model
-model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
-nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
+model = datools.Model('Solver', solverModel, 'ODEModel', modelODE);
+nature = datools.Model('Solver', solverNature, 'ODEModel', natureODE);
 
 % Observation Model
-naturetomodel = datools.observation.Linear(numel(nature0), 'H', ...
-    speye(natureODE.NumVars));
-
+natureToModel = @(x) x;
 
 % observe these variables
-observeindicies = 1:1:natureODE.NumVars;
+observeIndicies = 1:1:natureODE.NumVars;
+% observeindicies = 1:2:3;
 
-nobsvars = numel(observeindicies);
+nObsVars = numel(observeIndicies);
 
-R = (1 / 1) * speye(nobsvars);
+% R = (1/ 1) * speye(nobsvars);
+R = (1 / 1) * eye(nObsVars); % for EnGMF
 
 % Observaton model (Gaussian here)
-obserrormodel = datools.error.Gaussian('CovarianceSqrt', sqrtm(R));
-%obserrormodel = datools.error.Tent;
+obsErrorModel = datools.uncertainty.Gaussian('Covariance', R);
 observation = datools.observation.Indexed(model.NumVars, ...
-    'ErrorModel', obserrormodel, ...
-    'Indices', observeindicies);
+    'Uncertainty', obsErrorModel, ...
+    'Indices', observeIndicies);
+
+% observation model for the truth
+natureObsErrorModel = datools.uncertainty.Gaussian('Covariance', R);
+natureObs = datools.observation.Indexed(model.NumVars, ...
+    'Uncertainty', natureObsErrorModel, ...
+    'Indices', observeIndicies);
 
 % We make the assumption that there is no model error
-modelerror = datools.error.Error;
+modelError = datools.uncertainty.NoUncertainty;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
@@ -65,18 +74,18 @@ ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 % ensNs = 10:5:25;
 % infs = 1.01:0.01:1.04;
 
-ensNs = [5, 15, 25, 50];
-%ensNs = [10 50 100 200];
-infs = [1.01, 1.02, 1.05, 1.10];
-rejs = 2 * logspace(-2, -1, 4);
+% ensNs = [8, 16, 24, 32];
+ensNs = [10 50 100 200];
+infs = [1.00, 1.03, 1.07, 1.10];
+rejs = 2 * logspace(-2, 1, 4);
 rejs = round(rejs, 2);
 %rejs = [0.02 0.12 0.15 0.20];
 
 % variables for which you need the rank histogram plot
-histvar = 1:1:3;
-serveindicies = 1:1:natureODE.NumVars;
+histVar = 1:1:3;
+rhPlotVal = inf * ones(numel(ensNs), numel(infs));
+
 rmses = inf * ones(numel(ensNs), numel(infs));
-rhplotval = inf * ones(numel(ensNs), numel(infs));
 
 maxallowerr = 10;
 
@@ -102,6 +111,7 @@ for runn = runsleft.'
     [ensNi, reji] = ind2sub([numel(ensNs), numel(rejs)], runn);
 
     fprintf('N: %d, inf: %.3f\n', ensNs(ensNi), infs(infi));
+    % fprintf('N: %d, rejs: %.3f\n', ensNs(ensNi), rejs(reji));
 
     ns = 1;
     sE = zeros(ns, 1);
@@ -117,29 +127,23 @@ for runn = runsleft.'
         inflation = inflationAll;
         rejuvenation = rejAll;
 
+        %localization = [];
+
         % define the statistical/variational model here
-        enkf = datools.statistical.ensemble.EnKF(model, ...
-            'Observation', observation, ...
-            'NumEnsemble', ensN, ...
-            'ModelError', modelerror, ...
-            'EnsembleGenerator', ensembleGenerator, ...
+        filter = datools.filter.ensemble.(filterName)(model, ...
+            'InitialEnsemble', ensembleGenerator(ensN)/10, ...
             'Inflation', inflation, ...
             'Parallel', false, ...
-            'RankHistogram', histvar, ...
+            'RankHistogram', histVar, ...
             'Rejuvenation', rejuvenation);
 
-        enkf.setMean(natureODE.Y0);
-        enkf.scaleAnomalies(1/10);
+        filter.MeanEstimate = natureODE.Y0;
 
         % define steps and spinups
         spinup = 500;
         times = 11 * spinup;
 
         mses = zeros(times - spinup, 1);
-
-        %         imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-        %         axis square; title('EnKF'); colormap('pink');
-        %         xlabel('Ensemble Size'); ylabel('Inflation');
 
         rmse = nan;
         ps = '';
@@ -149,31 +153,33 @@ for runn = runsleft.'
 
         % Assimilation
         for i = 1:times
-            % forecast
+            % evolve the truth
             nature.evolve();
-
+            
+            % forecast 
             if do_enkf
-                enkf.forecast();
+                filter.forecast();
             end
 
             % observe
-            xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-            y = enkf.Observation.observeWithError(model.TimeSpan(1), xt);
+            xt = natureToModel(nature.State);
+            y = natureObs.observeWithError(xt);
+            observation.Uncertainty.Mean = y;
 
             % Rank histogram (if needed)
-            datools.utils.stat.RH(enkf, xt);
+            datools.utils.stat.RH(filter, xt, y);
 
             % analysis
 
             % try
             if do_enkf
-                enkf.analysis(R, y);
+                filter.analysis(observation);
             end
             %catch
             %    do_enkf = false;
             %end
 
-            xa = enkf.BestEstimate;
+            xa = filter.MeanEstimate;
 
             err = xt - xa;
 
@@ -194,7 +200,7 @@ for runn = runsleft.'
             end
 
         end
-        hold off;
+        
 
         if isnan(rmse)
             rmse = 1000;
@@ -215,7 +221,7 @@ for runn = runsleft.'
 
     rmses(ensNi, infi) = resE;
 
-    [xs, pval, rhplotval(ensNi, infi)] = datools.utils.stat.KLDiv(enkf.RankValue(1, 1:end-1), ...
+    [xs, pval, rhPlotVal(ensNi, infi)] = datools.utils.stat.KLDiv(filter.RankValue(1, 1:end-1), ...
         (1 / ensN)*ones(1, ensN+1));
 
     mm = min(rmses(:));
@@ -230,7 +236,7 @@ for runn = runsleft.'
     figure(f1);
     subplot(numel(infs), numel(ensNs), rw*numel(ensNs)+cl);
     hold all;
-    z = enkf.RankValue(1, 1:end-1);
+    z = filter.RankValue(1, 1:end-1);
     maxz = max(z);
     z = z / sum(z);
     NN = numel(z);
@@ -280,7 +286,7 @@ for runn = runsleft.'
     map = map(1:2:end-1, :);
     pt = flipud(pink);
     map = [map; pt(2:2:end, :)];
-    imagesc(ensNs, infs, rhplotval.');
+    imagesc(ensNs, infs, rhPlotVal.');
     caxis([-0.1, 0.1]);
     colorbar;
     set(gca, 'YDir', 'normal');

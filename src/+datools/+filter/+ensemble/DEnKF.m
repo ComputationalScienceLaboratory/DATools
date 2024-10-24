@@ -1,12 +1,21 @@
-classdef DEnKF < datools.statistical.ensemble.EnF
+classdef DEnKF < datools.filter.ensemble.EnF
+    % Deterministic EnKF
+    % DOI: https://doi.org/10.1111/j.1600-0870.2007.00299.x
+
+    properties
+        Name = "DEnKF" % check please
+    end
 
     methods
 
-        function analysis(obj, R, y)
+        function analysis(obj, obs)
+
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
 
             inflation = obj.Inflation;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -18,7 +27,7 @@ classdef DEnKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -29,8 +38,8 @@ classdef DEnKF < datools.statistical.ensemble.EnF
                 rhoHt = ones(size(Af, 1), size(HAf, 1));
                 HrhoHt = ones(size(HAf, 1), size(HAf, 1));
             else
-                H = obj.Observation.linearization(tc, xfm);
-                rhoHt = obj.Localization(tc, xfm, H);
+                H = obs.linearization(xfm);
+                rhoHt = obj.Localization(xfm, H);
                 HrhoHt = H * rhoHt;
             end
 
@@ -47,7 +56,7 @@ classdef DEnKF < datools.statistical.ensemble.EnF
             xam = xfm + (PfHt * (dS \ d));
 
             obj.Ensemble = repmat(xam, 1, ensN) + Aa;
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
         end
 

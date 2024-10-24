@@ -1,4 +1,8 @@
 classdef Observation < handle
+    %OBSERVATION This is the base class for all observation 
+    %   Derive from this class and implement methods/functions as required
+    %   Deriving from handle base class allows an object of this class to be
+    %   passed by reference.
 
     properties
         NumVars

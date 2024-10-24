@@ -1,5 +1,6 @@
-classdef LFETKF < datools.statistical.ensemble.EnF
-
+classdef LFETKF < datools.filter.ensemble.EnF
+    % Localized Fancy Ensemble Transform Kalman Filter
+    % citation/reference
     properties
         B
         Bsqrt
@@ -7,6 +8,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
         SurrogateEnsN
         Laplace
         Gamma
+        Name = "Localized Fancy Ensemble Transform Kalman Filter"
     end
 
     methods
@@ -24,7 +26,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
             kept = p.Unmatched;
 
-            obj@datools.statistical.ensemble.EnF(varargin{1}, kept);
+            obj@datools.filter.ensemble.EnF(varargin{1}, kept);
 
             obj.B = s.B;
             obj.Bsqrt = s.Bsqrt;
@@ -35,15 +37,21 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
         end
 
-        function analysis(obj, R, y)
-
-
+        function analysis(obj, observation)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
 
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
+            
+            R = observation.Uncertainty.Covariance;
 
 
             xfm = mean(xf, 2);
@@ -77,7 +85,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
             xf = repmat(xfm, 1, ensN) + Af;
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = observation.observeWithoutError(tc, xf);
             Hxfm = mean(Hxf, 2);
 
             HAf = Hxf - repmat(Hxfm, 1, ensN);
@@ -88,7 +96,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
             w = w - repmat(mean(w, 2), 1, ensNW);
             ws = sqrt(gamma) * w / sqrt(ensNW-1);
 
-            Hw = obj.Observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
+            Hw = observation.observeWithoutError(tc, w+repmat(xfm, 1, ensNW));
             Hwm = mean(Hw, 2);
             HAw = Hw - repmat(Hwm, 1, ensNW);
 
@@ -100,7 +108,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
             Aa = Af;
             xam = xfm;
 
-            Hi = obj.Observation.Indices;
+            Hi = observation.Indices;
 
             for k = 1:numel(xfm)
 
@@ -118,7 +126,7 @@ classdef LFETKF < datools.statistical.ensemble.EnF
 
                 TT = (eye(ensN+ensNW) - ZZTSiZZ);
 
-                d = y - Hxfm;
+                d = observation.Y - Hxfm;
 
                 AAa = [Afs, ws] * real(sqrtm(TT));
                 Aa(k, :) = sqrt(ensN-1) * AAa(k, 1:ensN) / sqrt(1-gamma);

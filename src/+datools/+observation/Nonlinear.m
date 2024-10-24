@@ -1,5 +1,6 @@
 classdef Nonlinear < datools.observation.Observation
-
+    % Derived from the "observation" parent class. This can be chosen when
+    % the observation operator is non-linear. 
     properties
         F
         Jacobian

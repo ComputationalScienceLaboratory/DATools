@@ -1,12 +1,25 @@
-classdef SIS_EnKF < datools.statistical.ensemble.EnF
+classdef SIS_EnKF < datools.filter.ensemble.EnF
+    % Sequence Importance Sampling with EnKF
+    % citation/reference
+    properties
+        Name = "Sequence Importance Sampling with EnKF"
+    end
 
     methods
 
-        function analysis(obj, R, y)
-
+        function analysis(obj, obs)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
+            
             inflation = obj.Inflation;
             tau = obj.Rejuvenation;
-            tc = obj.Model.TimeSpan(1);
+            tc = obj.Model.ODEModel.TimeSpan(1);
+
+            y = obs.Uncertainty.Mean;
+            R = obs.Uncertainty.Covariance;
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
@@ -20,7 +33,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             Af = inflation / sqrt(ensN-1) * (xf - xfm);
             xf = xfm + Af * sqrt(ensN-1);
 
-            Hxf = obj.Observation.observeWithoutError(tc, xf);
+            Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
             HAf = 1 / sqrt(ensN-1) * (Hxf - Hxfm);
 
@@ -28,13 +41,15 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
                 rhoHt = ones(modelsize, obsize);
                 HrhoHt = ones(obsize, obsize);
             else
-                H = obj.Observation.linearization(tc, xfm);
-                rhoHt = obj.Localization(tc, xfm, H);
+                H = obs.linearization(xfm);
+                rhoHt = obj.Localization(xfm, H);
                 HrhoHt = H * rhoHt;
             end
 
             PfHt = rhoHt .* ((1 / (ensN - 1)) * (Af * (HAf.')));
             HPfHt = HrhoHt .* ((1 / (ensN - 1)) * (HAf * (HAf.')));
+
+            HPfHt = (HPfHt + HPfHt.')/2;
 
             S = HPfHt + R;
             dS = decomposition(S, 'chol');
@@ -50,7 +65,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
 
             prop = exp(-0.5*sum(t0.*(V \ t0), 1)).';
 
-            Hxa = obj.Observation.observeWithoutError(tc, xa);
+            Hxa = obs.observeWithoutError(xa);
             t0 = Hxa - y;
             lik = exp(-0.5*sum(t0.*(R \ t0), 1)).';
 
@@ -62,7 +77,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             w = w ./ sum(w);
 
             %             1/sum(w.^2)
-            % Resample is number of particles is low. Resampling at each
+            % Resample if number of particles is low. Resampling at each
             % step is better, but we can choose a threshold to resample.
             if 1 / sum(w.^2) < ensN / 2
                 what = cumsum(w);
@@ -79,7 +94,7 @@ classdef SIS_EnKF < datools.statistical.ensemble.EnF
             obj.Weights = w;
             obj.rejuvenate(tau, xf);
 
-            obj.Model.update(0, obj.BestEstimate);
+            obj.Model.update(0, obj.MeanEstimate);
 
         end
 

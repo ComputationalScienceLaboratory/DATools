@@ -1,22 +1,26 @@
 classdef Model < handle
+    %MODEL this is the base model class
+    %   Handles all the data pertaining to a given model
+    %   User can use OTP model or define their own
+    %   User may define their choice of time integration method (or MATLODE)
+    %   Model errors can be incorporated using the SynthError
 
     properties
-        ODEModel
-        Solver
-        SolverTLM
-        Uncertainty
+        ODEModel % refactor as this may not be an ode or otp problem
+        Solver % refactor because a test problem can come with its own solver
+        SolverTLM % the model operator is linearized in this case
+        Uncertainty % the model noise
     end
 
     properties (Dependent)
-        State
-        NumVars
-        TimeSpan
-        DistanceFunction
+        State % current states of the Model
+        NumVars % number of state variables
+        DistanceFunction % distance function for localization
+        TimeStamp % timestamp for this curent state
     end
 
     methods
         function obj = Model(varargin)
-
 
             p = inputParser;
             addRequired(p, 'ODEModel'); %, @(x) isa(x, 'csl.odetestproblems.Problem'));
@@ -69,11 +73,12 @@ classdef Model < handle
             if ~isempty(params)
                 [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
             else
-                [t, yend] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
+                % [t, yend] = obj.Solver(obj.ODEModel.RHS.F, tspan, y0);
+                [t, yend] = obj.Solver(obj.ODEModel.F, tspan, y0);
             end
 
             time = t(end) - t(1);
-            %yend = y(end, :).';
+            % yend = yend(end, :).';
 
         end
 
@@ -96,19 +101,23 @@ classdef Model < handle
             end
 
             if ~isempty(params)
-                [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
+                % [t, yend] = obj.Solver(@(t, y) obj.ODEModel.RHS.F(t, y, params), tspan, y0);
+                [t, yend] = obj.Solver(@(t, y) obj.ODEModel.F(t, y, params), tspan, y0);
             else
                 J = obj.ODEModel.RHS.Jacobian;
                 if isempty(J)
+                    % J = @(t, y) otp.utils.derivatives.jacobian( ...
+                    %     obj.ODEModel.RHS.F, t, y, 'FD');
                     J = @(t, y) otp.utils.derivatives.jacobian( ...
-                        obj.ODEModel.RHS.F, t, y, 'FD');
+                        obj.ODEModel.F, t, y, 'FD');
                 end
 
-                [t, yend, lambda] = obj.SolverTLM(obj.ODEModel.RHS.F, tspan, y0, J, lambda);
+                % [t, yend, lambda] = obj.SolverTLM(obj.ODEModel.RHS.F, tspan, y0, J, lambda);
+                [t, yend, lambda] = obj.SolverTLM(obj.ODEModel.F, tspan, y0, J, lambda);
             end
 
             time = t(end) - t(1);
-            %yend = y(end, :).';
+            % yend = yend(end, :).';
 
         end
 
@@ -131,16 +140,15 @@ classdef Model < handle
 
         end
 
-        function timespan = get.TimeSpan(obj)
-
-            timespan = obj.ODEModel.TimeSpan;
-
-        end
 
         function distfn = get.DistanceFunction(obj)
 
             distfn = obj.ODEModel.DistanceFunction;
 
+        end
+
+        function t = get.TimeStamp(obj)
+            t = obj.ODEModel.TimeSpan(1);
         end
     end
 

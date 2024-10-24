@@ -1,5 +1,6 @@
 classdef EnKF < datools.filter.ensemble.EnF
-
+    % Ensemble Kalman Filter with Perturbed Observation
+    % citation/reference
     properties
         Name = "Ensemble Kalman Filter"
     end
@@ -7,6 +8,11 @@ classdef EnKF < datools.filter.ensemble.EnF
     methods
 
         function analysis(obj, obs)
+            %ANALYSIS   Method to overload the analysis function
+            %
+            %   ANALYSIS(OBJ) assimilates the current observation with the
+            %   background/prior information to get a better estimate
+            %   (analysis/posterior)
 
             y = obs.Uncertainty.Mean;
             R = obs.Uncertainty.Covariance;
@@ -15,17 +21,15 @@ classdef EnKF < datools.filter.ensemble.EnF
 
             xf = obj.Ensemble;
             ensN = obj.NumEnsemble;
-
+            
+            % inflate
             xfm = mean(xf, 2);
-
             Af = xf - repmat(xfm, 1, ensN);
             Af = inflation * Af;
-
             xf = repmat(xfm, 1, ensN) + Af;
 
             Hxf = obs.observeWithoutError(xf);
             Hxfm = mean(Hxf, 2);
-
             HAf = Hxf - repmat(Hxfm, 1, ensN);
 
             % tapering

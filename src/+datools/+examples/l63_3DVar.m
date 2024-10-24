@@ -5,11 +5,14 @@ rng(5);
 
 Deltat = 0.12;
 
-solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 100);
-solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 100);
+% solvermodel = @(f, t, y) datools.utils.rk4(f, t, y, 100);
+% solvernature = @(f, t, y) datools.utils.rk4(f, t, y, 100);
+% 
+% solvermodel = @(f, t, y) ode45(f, t, y);
+% solvernature = @(f, t, y) ode45(f, t, y);
 
-solvermodel = @(f, t, y) ode45(f, t, y);
-solvernature = @(f, t, y) ode45(f, t, y);
+solvermodel = @(f, t, y) datools.utils.eDP54(f, t, y);
+solvernature = @(f, t, y) datools.utils.eDP54(f, t, y);
 
 natureODE = otp.lorenz63.presets.Canonical;
 natureODE.TimeSpan = [0, Deltat];
@@ -40,7 +43,7 @@ dR = decomposition(R, 'chol');
 
 obserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 observation = datools.observation.Indexed(model.NumVars, ...
-    'ErrorModel', obserrormodel, ...
+    'Uncertainty', obserrormodel, ...
     'Indices', observeindicies);
 
 % We make the assumption that there is no model error
@@ -57,19 +60,20 @@ B = 8*B;
 modelerror = datools.uncertainty.Gaussian('Covariance', B/2);
 
 
-% meth = datools.variational.ThreeDVar(model, ...
+meth = datools.filter.variational.ThreeDVar(model, ...
+    'ModelError', modelerror, ...
+    'Observation', observation, ...
+    'CovarianceEstimate', [],...
+    'InitialState', nature.State, ...
+    'BackgroundCovariance', B, ...
+    'OptimizationType', 'lbfgs');
+
+% meth = datools.filter.gaussian.UKF(model, ...
 %     'ModelError', modelerror, ...
 %     'Observation', observation, ...
 %     'InitialState', nature.State, ...
-%     'BackgroundCovariance', B, ...
-%     'OptimizationType', 'lbfgs');
-
-meth = datools.gaussian.UKF(model, ...
-    'ModelError', modelerror, ...
-    'Observation', observation, ...
-    'InitialState', nature.State, ...
-    'InitialCovariance', B, ...
-    'Alpha', 1e-1);
+%     'InitialCovariance', B, ...
+%     'Alpha', 1e-1);
 
 spinup = 500;
 times = 5500;
@@ -89,8 +93,8 @@ for i = 1:times
 
 
     % observe
-    xt = naturetomodel.observeWithoutError(nature.TimeSpan(1), nature.State);
-    y = meth.Observation.observeWithError(model.TimeSpan(1), xt);
+    xt = naturetomodel.observeWithoutError(nature.State);
+    y = meth.Observation.observeWithError(xt);
 
     % analysis
     %try
@@ -101,7 +105,7 @@ for i = 1:times
     %    do_enkf = false;
     %end
 
-    xa = meth.BestEstimate;
+    xa = meth.MeanEstimate;
 
     err = xt - xa;
 
@@ -118,4 +122,3 @@ for i = 1:times
 
 end
 
-rmse
