@@ -9,6 +9,7 @@ classdef FETKF < datools.filter.ensemble.EnF
         Laplace
         Gamma
         Name = 'Fancy Ensemble Transform Kalman Filter' % Please check
+        Type = "Ensemble"
     end
 
     methods

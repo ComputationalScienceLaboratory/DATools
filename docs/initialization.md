@@ -8,7 +8,16 @@ TODO
 TODO
 
 ## Observation
-TODO
+The observation class defines the observation operator(H). It also has the flexibility to accept the jacobian of H. The user needs to supply the jacobian of H for now.
+Suppose we need to have indexed observation, we do the following:
+```
+% example for defining object of observation class
+
+observation = datools.observation.Indexed(model.NumVars,...
+			'Uncertainty', observationErrorModel,...
+			'Indices', indicesObserved)
+``` 
+Here `model` is an object of the model class, `observationErrorModel' is an object of the error class, `indicesObserved` are the indices of the states observed.
 
 ## Tapering
 TODO

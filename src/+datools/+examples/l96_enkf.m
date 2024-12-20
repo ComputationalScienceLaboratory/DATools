@@ -119,8 +119,8 @@ for runn = runsleft.'
         d = @(y, i, j) modelODE.DistanceFunction(0, y, i, j);
         
 
-        localization = [];
-        % localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
+        % localization = [];
+        localization = @(y, H) datools.tapering.bloc.gc(y, r, d, H);
         % localization = @(y, H, k) datools.tapering.rloc.gc(y, r, d, H, k);
         % localization = @(t, y, Hi, k) datools.tapering.gcCTilde(t, y, Hi, r, d, k);
         % localization = @(t, y, Hi, k) datools.tapering.cutoffCTilde(t, y, r, d, Hi, k);

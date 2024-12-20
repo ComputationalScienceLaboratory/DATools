@@ -3,6 +3,7 @@ classdef EnKF < datools.filter.ensemble.EnF
     % citation/reference
     properties
         Name = "Ensemble Kalman Filter"
+        Type = "Ensemble"
     end
 
     methods

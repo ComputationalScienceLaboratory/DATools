@@ -7,6 +7,7 @@ classdef FETPF < datools.filter.ensemble.EnF
         SurrogateEnsN
         Laplace
         Name = 'Fancy Ensemble Transport Particle Filter' % Please check
+        Type = "Particle"
     end
 
     methods

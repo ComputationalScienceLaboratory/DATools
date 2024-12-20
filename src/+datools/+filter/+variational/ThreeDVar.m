@@ -10,6 +10,7 @@ classdef ThreeDVar < datools.DABase
         OptAlg % lbfgs or newton
         CovarianceEstimate % needed bc of class abstraction
         Name = 'ThreeDvar'
+        Type = "Variational"
     end
 
     properties (Access=protected)

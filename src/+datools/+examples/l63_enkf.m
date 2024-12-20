@@ -8,7 +8,7 @@ clc;
 
 % time steps
 dt = 0.12;
-filterName = 'ETKF';
+filterName = 'EnKF';
 filterType = 'Particle';
 
 % Time Stepping Methods (Use ode45 or write your own)
@@ -94,10 +94,6 @@ mm = min(rmses(:));
 if mm >= maxallowerr
     mm = 0;
 end
-
-% imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-% axis square; title('EnKF_l63'); colormap('hot');
-% xlabel('Ensemble Size'); ylabel('Inflation');
 
 runsleft = find(rmses == inf);
 

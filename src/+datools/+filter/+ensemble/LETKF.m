@@ -3,6 +3,7 @@ classdef LETKF < datools.filter.ensemble.EnF
     % citation/reference
     properties
         Name = "Localized Ensemble Transform Kalman Filter"
+        Type = "Ensemble"
     end
 
     methods

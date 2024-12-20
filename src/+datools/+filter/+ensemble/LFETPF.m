@@ -8,6 +8,7 @@ classdef LFETPF < datools.statistical.ensemble.EnF
         Laplace
         LocalizationEnsembleDistance
         Name = "Localized Fancy Ensemble Particle Filter"
+        Type = "Particle"
     end
 
     methods

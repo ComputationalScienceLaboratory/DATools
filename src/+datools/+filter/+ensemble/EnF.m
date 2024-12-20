@@ -18,6 +18,11 @@ classdef EnF < datools.DABase
         ResamplingThreshold % threshold below which resampling needs to be done (particle filters)
     end
 
+    properties(Abstract)
+        Name % name of the filter
+        Type % type of filter(Ensemble/Gaussian/Variational)
+    end
+
     properties (Dependent)
         MeanEstimate % Current (Mean) estimate of the particles/ensembles
         CovarianceEstimate

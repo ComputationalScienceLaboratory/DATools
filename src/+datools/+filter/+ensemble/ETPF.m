@@ -7,6 +7,7 @@ classdef ETPF < datools.filter.ensemble.EnF
         SecondOrderCorrection = false;
         LocalizationEnsembleDistance;
         Name = "Ensemble Transport Particle Filter"
+        Type = "Particle"
     end
 
     methods

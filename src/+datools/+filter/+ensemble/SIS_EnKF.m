@@ -3,6 +3,7 @@ classdef SIS_EnKF < datools.filter.ensemble.EnF
     % citation/reference
     properties
         Name = "Sequence Importance Sampling with EnKF"
+        Type = "Particle"
     end
 
     methods
