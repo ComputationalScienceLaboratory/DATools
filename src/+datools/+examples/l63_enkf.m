@@ -2,14 +2,14 @@
 % experiment where we consider we know the truth trajectory. This is,
 % hoever, not always true. 
 
-clear;
-close all;
-clc;
+% clear;
+% close all;
+% clc;
 
 % time steps
 dt = 0.12;
-filterName = 'ETKF';
-filterType = 'Particle';
+filterName = 'EnKF';
+filterType = 'Ensemble';
 
 % Time Stepping Methods (Use ode45 or write your own)
 % solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
@@ -37,16 +37,19 @@ modelODE.TimeSpan = [0, dt];
 [tt, yy] = ode45(natureODE.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
+% We make the assumption that there is no model error
+modelUncertainty = datools.uncertainty.NoUncertainty;
+
 % initialize model
-model = datools.Model('Solver', solverModel, 'ODEModel', modelODE);
-nature = datools.Model('Solver', solverNature, 'ODEModel', natureODE);
+model = datools.Model('Solver', solverModel, 'ODEModel', modelODE, 'Uncertainty', modelUncertainty);
+nature = datools.Model('Solver', solverNature, 'ODEModel', natureODE, 'Uncertainty', modelUncertainty);
 
 % Observation Model
 natureToModel = @(x) x;
 
 % observe these variables
-observeIndicies = 1:1:natureODE.NumVars;
-% observeindicies = 1:2:3;
+% observeIndicies = 1:1:natureODE.NumVars;
+observeIndicies = 1:2:3;
 
 nObsVars = numel(observeIndicies);
 
@@ -65,17 +68,14 @@ natureObs = datools.observation.Indexed(model.NumVars, ...
     'Uncertainty', natureObsErrorModel, ...
     'Indices', observeIndicies);
 
-% We make the assumption that there is no model error
-modelError = datools.uncertainty.NoUncertainty;
-
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
 % number of ensembles and inflation
 % ensNs = 10:5:25;
 % infs = 1.01:0.01:1.04;
 
-% ensNs = [8, 16, 24, 32];
-ensNs = [10 50 100 200];
+ensNs = [16, 24, 32, 48];
+% ensNs = [10 50 100 200];
 infs = [1.00, 1.03, 1.07, 1.10];
 rejs = 2 * logspace(-2, 1, 4);
 rejs = round(rejs, 2);
@@ -255,10 +255,10 @@ for runn = runsleft.'
     %han.XTickLabel.Visible = 'on';
     %set(han, 'XTick', linspace(ensNs(1), ensNs(end), size(ensNs,2)));
     %set(han, 'XTickLabel', ensNs);
-    ylabel(han, 'Inflation');
+    ylabel(han, 'Inflation', 'FontSize', 16, 'FontWeight', 'bold');
     %ylabel(han,'Rejuvetion');
-    xlabel(han, 'Ensemble Size');
-    title(han, 'Rank Histogram');
+    xlabel(han, 'Ensemble Size', 'FontSize', 16, 'FontWeight', 'bold');
+    title(han, 'Rank Histogram', 'FontSize', 18, 'FontWeight', 'bold');
     drawnow;
 
     figure(f2);
@@ -316,9 +316,9 @@ for runn = runsleft.'
     han.Title.Visible = 'on';
     han.XLabel.Visible = 'on';
     han.YLabel.Visible = 'on';
-    ylabel(han, 'Value');
-    xlabel(han, 'Time Step');
-    title(han, 'RMSE');
+    ylabel(han, 'Value', 'FontSize', 16, 'FontWeight', 'bold');
+    xlabel(han, 'Time Step', 'FontSize', 16, 'FontWeight', 'bold');
+    title(han, 'RMSE', 'FontSize', 18, 'FontWeight', 'bold');
     drawnow;
 
 end

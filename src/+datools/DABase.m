@@ -8,6 +8,7 @@ classdef (Abstract) DABase < handle
         MeanEstimate % current estimates of the states
         CovarianceEstimate % spread of the states, if needed
         Name % the name of the filter
+        Type % the type of filter (variational/ensemble/hybrid)
     end
 
 

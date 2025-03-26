@@ -16,6 +16,7 @@ classdef EnF < datools.DABase
         RankHistogram % State variables for which RH is needed
         RankValue % store the RH values for each state variables required
         ResamplingThreshold % threshold below which resampling needs to be done (particle filters)
+        Type = "Ensemble"
     end
 
     properties (Dependent)

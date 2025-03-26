@@ -7,7 +7,7 @@ clc;
 
 % time steps
 dt = 0.12;
-filterName = 'ETKF';
+filterName = 'EnKF';
 filterType = 'Ensemble';
 
 % define steps and spinups
@@ -41,7 +41,7 @@ natureToModel = @(x) x;
 
 observeIndicies = 1:1:3;
 
-observSig = 1;
+observSig = 8;
 
 R = (observSig) * speye(numel(observeIndicies));
 
@@ -106,6 +106,8 @@ for i = 1:times
     if i>spinup
         mses(i - spinup) = mean((xa - xt).^2);
         rmse(i - spinup) = sqrt(mean(mses(1:(i - spinup))));
+
+        fprintf('step: %d, rmse: %.3f\n', i, rmse(i - spinup));
     end
 end
 

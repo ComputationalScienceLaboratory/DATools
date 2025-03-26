@@ -5,7 +5,19 @@ This explains how to initialize all class objects
 TODO
 
 ## Uncertainty
-TODO
+The "uncertainity" class helps to define object pertaining to different noises. As of now, we support "Uniform", "Gaussian", "Laplace" and more will be supported in the future. 
+
+```
+An example where we need no noise
+
+modelUncertainty = datools.uncertainty.NoUncertainty;
+
+
+Another example where we initialize an object which can be used to add Gaussian noise
+
+modelUncertainity = datools.uncertainity.Gaussian('Covariance', R);
+where `R`  is the observation error covariance
+``` 
 
 ## Observation
 TODO

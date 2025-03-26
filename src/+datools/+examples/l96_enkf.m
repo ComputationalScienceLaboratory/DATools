@@ -28,9 +28,12 @@ modelODE.TimeSpan = [0, dt];
 [tt, yy] = ode45(natureODE.F, [0, 10], nature0);
 natureODE.Y0 = yy(end, :).';
 
+% We make the assumption that there is no model error
+modelUncertainty = datools.uncertainty.NoUncertainty;
+
 % initialize model
-model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE);
-nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE);
+model = datools.Model('Solver', solvermodel, 'ODEModel', modelODE, 'Uncertainty', modelUncertainty);
+nature = datools.Model('Solver', solvernature, 'ODEModel', natureODE, 'Uncertainty', modelUncertainty);
 
 % Observation Model
 naturetomodel = @(x) x;
@@ -53,10 +56,6 @@ natureobserrormodel = datools.uncertainty.Gaussian('Covariance', R);
 natureobs = datools.observation.Indexed(model.NumVars, ...
     'Uncertainty', natureobserrormodel, ...
     'Indices', observeindicies);
-
-
-% We make the assumption that there is no model error
-modelerror = datools.uncertainty.NoUncertainty;
 
 ensembleGenerator = @(N) randn(natureODE.NumVars, N);
 
