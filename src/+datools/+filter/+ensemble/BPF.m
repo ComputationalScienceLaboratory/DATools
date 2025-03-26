@@ -3,6 +3,7 @@ classdef BPF < datools.filter.ensemble.EnF
     % citations/references
     properties
         Name = "Bootstrap Particle Filter"
+        Type = "Particle"
     end
 
     methods

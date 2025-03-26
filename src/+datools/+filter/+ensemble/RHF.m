@@ -7,6 +7,7 @@ classdef RHF < datools.filter.ensemble.EnF
         LeftBound % lower bound on the tail
         RightBound % upper bound on the tail
         Name = "Rank Histogram Filter"
+        Type = "Ensemble"
     end
 
     methods

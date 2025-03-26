@@ -19,6 +19,11 @@ classdef EnF < datools.DABase
         Type = "Ensemble"
     end
 
+    properties(Abstract)
+        Name % name of the filter
+        Type % type of filter(Ensemble/Gaussian/Variational)
+    end
+
     properties (Dependent)
         MeanEstimate % Current (Mean) estimate of the particles/ensembles
         CovarianceEstimate

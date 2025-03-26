@@ -11,6 +11,7 @@ dt = 0.12;
 filterName = 'EnKF';
 filterType = 'Ensemble';
 
+
 % Time Stepping Methods (Use ode45 or write your own)
 % solvermodel = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
 % solvernature = @(f, t, y) datools.utils.rk4ens(f, t, y, 1);
@@ -94,10 +95,6 @@ mm = min(rmses(:));
 if mm >= maxallowerr
     mm = 0;
 end
-
-% imagesc(ensNs, infs, rmses.'); caxis([mm, 1]); colorbar; set(gca,'YDir','normal');
-% axis square; title('EnKF_l63'); colormap('hot');
-% xlabel('Ensemble Size'); ylabel('Inflation');
 
 runsleft = find(rmses == inf);
 

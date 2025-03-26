@@ -15,6 +15,7 @@ classdef EnGMF < datools.filter.ensemble.EnF
         UseAKDE
 
         Name = 'Ensemble Gaussian Mixture Filter'
+        Type = "Gaussian"
     end
 
     properties (Access = private)

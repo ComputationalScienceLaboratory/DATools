@@ -1,4 +1,4 @@
-% this is the rhs of Lorenz 63 dynamical system
+% this is the rhs (f) of Lorenz 63 dynamical system
 %
 function dy = f(~, y, sigma, rho, beta)
 if nargin<3

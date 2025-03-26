@@ -4,6 +4,7 @@ classdef DEnKF < datools.filter.ensemble.EnF
 
     properties
         Name = "DEnKF" % check please
+        Type = "Ensemble"
     end
 
     methods
