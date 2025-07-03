@@ -5,10 +5,31 @@ This explains how to initialize all class objects
 TODO
 
 ## Uncertainty
-TODO
+The "uncertainity" class helps to define object pertaining to different noises. As of now, we support "Uniform", "Gaussian", "Laplace" and more will be supported in the future. 
+
+```
+An example where we need no noise
+
+modelUncertainty = datools.uncertainty.NoUncertainty;
+
+
+Another example where we initialize an object which can be used to add Gaussian noise
+
+modelUncertainity = datools.uncertainity.Gaussian('Covariance', R);
+where `R`  is the observation error covariance
+``` 
 
 ## Observation
-TODO
+The observation class defines the observation operator(H). It also has the flexibility to accept the jacobian of H. The user needs to supply the jacobian of H for now.
+Suppose we need to have indexed observation, we do the following:
+```
+% example for defining object of observation class
+
+observation = datools.observation.Indexed(model.NumVars,...
+			'Uncertainty', observationErrorModel,...
+			'Indices', indicesObserved)
+``` 
+Here `model` is an object of the model class, `observationErrorModel' is an object of the error class, `indicesObserved` are the indices of the states observed.
 
 ## Tapering
 TODO

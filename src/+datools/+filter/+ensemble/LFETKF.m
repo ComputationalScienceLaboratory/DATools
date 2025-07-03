@@ -9,6 +9,7 @@ classdef LFETKF < datools.filter.ensemble.EnF
         Laplace
         Gamma
         Name = "Localized Fancy Ensemble Transform Kalman Filter"
+        Type = "Ensemble"
     end
 
     methods

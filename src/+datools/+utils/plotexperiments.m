@@ -7,6 +7,7 @@ f1 = figure;
 f2 = figure;
 
 filtertype = 'Ensemble';
+% filterType = filter.Type;
 
 switch filtertype
     case 'Ensemble'
@@ -38,7 +39,7 @@ for runn = 1:totalrunsplot
     subxlabelposition = 0.045;
     subylabelposition = 0.1;
 
-    figure(f1);
+    figure(f1); % this is the rank histogram
     ha = subplot(numel(infsplot), numel(ensNsplot), rw*numel(ensNsplot)+cl);
     hold all;
     hold all;
@@ -84,8 +85,8 @@ for runn = 1:totalrunsplot
     end
 
 
-    figure(f2); 
-%figure;
+    figure(f2); % rmse
+    %figure;
     subplot(numel(infsplot), numel(ensNsplot), rw*numel(ensNsplot)+cl);
     plot(spinup+1:1:steps, rmsvalmatrix{plotindices(runn)}, '.','MarkerSize', 8);
     grid on;
@@ -128,7 +129,7 @@ end
 f3 = figure;
 f4 = figure;
 
-figure(f3);
+figure(f3); % rmse heatmap
 ensemblenumberplot = ensNs(rmseheatmapplotindex);
 inflationnumberplot = infs(rmseheatmapplotindex);
 rejuvenationnumberplot = rejs(rmseheatmapplotindex);
@@ -168,7 +169,7 @@ end
 bn = flipud(bone);
 pk = pink;
 %pk = flipud(pink);
-figure(f4);
+figure(f4); % kl div
 map1 = bn;
 map1 = map1(1:2:end-50, :);
 map2 = pk;

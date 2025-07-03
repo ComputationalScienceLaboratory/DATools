@@ -3,6 +3,7 @@ classdef ETKF < datools.filter.ensemble.EnF
     % citation/reference
     properties
         Name = "Ensemble Transform Kalman Filter"
+        Type = "Ensemble"
     end
 
     methods

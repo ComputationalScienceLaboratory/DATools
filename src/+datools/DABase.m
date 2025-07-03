@@ -6,8 +6,9 @@ classdef (Abstract) DABase < handle
     properties (Abstract)
         Model % type of ODE solver (ode45/Runge Kutta) and the model (eg: Lorenz63)
         MeanEstimate % current estimates of the states
-        CovarianceEstimate % spread of the states, if needed
+        CovarianceEstimate % spread of the states, if needed (ensemble based)
         Name % the name of the filter
+        Type % type of filter (ensemble/variational/gaussian based)
     end
 
 
